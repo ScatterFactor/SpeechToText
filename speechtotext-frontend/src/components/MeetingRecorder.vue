@@ -180,10 +180,11 @@
                                 <h4>{{ voiceprint.speakerName }}</h4>
                                 <p>{{ voiceprint.fileName }}</p>
                                 <span class="upload-date">添加于: {{ voiceprint.uploadDate }}</span>
+                                <!-- <span class="upload-date">添加于: {{ voiceprint.timeStamp }}</span> -->
                             </div>
                         </div>
                         <div class="voiceprint-actions">
-                            <button class="btn-icon" @click="deleteVoiceprint(index)">
+                            <button class="btn-icon" @click="deleteVoiceprint(index, voiceprint.timeStamp)">
                                 <span><i class="fas fa-trash"></i>删除</span>
                             </button>
                         </div>
@@ -231,6 +232,7 @@ export default {
                 '提出了数据库读写分离的优化方案以提高高并发性能',
                 '要求准备详细技术方案在下次会议讨论',
                 '需要确认测试团队是否提前介入'
+                ,
             ],
             savedFiles: [
                 { name: '2023-09-15_产品会议记录' },
@@ -247,27 +249,39 @@ export default {
                 speakerName: '',
                 file: null
             },
-            voiceprints: [
-                // {
-                //     speakerName: '张三',
-                //     fileName: 'zhangsan_voice.mp3',
-                //     uploadDate: '2023-09-20'
-                // },
-                // {
-                //     speakerName: '李四',
-                //     fileName: 'lisi_voice.wav',
-                //     uploadDate: '2023-09-19'
-                // }
-            ]
+            voiceprints: []
 
         }
     },
+
+    created() {
+        this.getAllVoicePrints();
+    },
+
     computed: {
         isVoiceprintValid() {
             return this.newVoiceprint.speakerName.trim() !== '' && this.newVoiceprint.file !== null;
         }
     },
     methods: {
+        getAllVoicePrints() {
+            fetch('/api/getAllVoicePrints', {
+                method: "GET"
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("获取声纹数据失败");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.voiceprints = data;
+                })
+                .catch(error => {
+                    console.log('获取所有声纹列表失败:' + error);
+                    // alert('获取所有声纹数据失败');
+                })
+        },
         startRecording() {
             if (!this.isRecording) {
                 this.isRecording = true;
@@ -363,14 +377,65 @@ export default {
 
         addVoiceprint() {
             if (this.isVoiceprintValid) {
+                let newVoiceprintTimeStamp = Date.now();
                 this.voiceprints.unshift({
                     speakerName: this.newVoiceprint.speakerName,
                     fileName: this.newVoiceprint.file.name,
-                    uploadDate: new Date().toLocaleDateString()
+                    uploadDate: new Date().toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false // 使用24小时制
+                    }),
+                    timeStamp: newVoiceprintTimeStamp
                 });
 
                 // 在实际应用中，这里应该上传文件到服务器
-                alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
+                // alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
+
+                const formData = new FormData();
+                formData.append('speakerName', this.newVoiceprint.speakerName);
+                formData.append('fileName', this.newVoiceprint.file.name);
+                formData.append('audioFile', this.newVoiceprint.file);
+                formData.append('timesStamp', newVoiceprintTimeStamp);
+
+                fetch('/api/addVoicePrint', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 处理响应...
+                        // response的结构：{"success":true, "message":"声纹添加成功"}
+                        if (data.success) {
+                            //后端添加成功，同时更新前端声纹列表
+                            // this.voiceprints.unshift({
+                            //     speakerName: this.newVoiceprint.speakerName,
+                            //     fileName: this.newVoiceprint.file.name,
+                            //     uploadDate: new Date().toLocaleString('zh-CN', {
+                            //         year: 'numeric',
+                            //         month: '2-digit',
+                            //         day: '2-digit',
+                            //         hour: '2-digit',
+                            //         minute: '2-digit',
+                            //         second: '2-digit',
+                            //         hour12: false // 使用24小时制
+                            //     }),
+                            //     timeStamp: newVoiceprintTimeStamp
+                            // });
+                            alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
+                        } else {
+                            alert('声纹添加失败');
+                        }
+                    })
+                    .catch(error => {
+                        // 错误处理...
+                        // alert('声纹添加失败');
+                        console.log(error);
+                    });
 
                 // 重置表单
                 this.cancelVoiceprintAdd();
@@ -385,9 +450,27 @@ export default {
             this.showVoiceprintForm = false;
         },
 
-        deleteVoiceprint(index) {
+        deleteVoiceprint(index, timeStamp) {
             if (confirm('确定要删除这个声纹吗？')) {
-                this.voiceprints.splice(index, 1);
+                // this.voiceprints.splice(index, 1);
+                fetch('api/deleteVoiceprint', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ timeStamp: timeStamp })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.voiceprints.splice(index, 1);
+                            alert("声纹删除成功");
+                        }
+                    })
+                    .catch(error => {
+                        alert("声纹删除失败");
+                        console.log(error);
+                    })
             }
         },
 
