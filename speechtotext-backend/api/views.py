@@ -3,7 +3,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import os, torch, psutil
 from funasr import AutoModel
-from tools.tool import Procedure   # 直接引入你的类
+from api.tools.tool import Procedure   # 直接引入你的类
+
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Meeting, Voiceprint
+from .serializers import MeetingSerializer, VoiceprintSerializer
 
 # 初始化模型（只加载一次，避免每次请求都加载）
 home_directory = os.path.expanduser("~")
@@ -39,3 +45,22 @@ def recognize(request):
 
         return JsonResponse({"results": results}, safe=False)
     return JsonResponse({"error": "请用 POST 上传 audio 文件"}, status=400)
+
+
+# 会议记录管理
+class MeetingViewSet(viewsets.ModelViewSet):
+    queryset = Meeting.objects.all().order_by('-created_at')
+    serializer_class = MeetingSerializer
+
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        meeting = self.get_object()
+        # 调用AI生成摘要逻辑可以放这里
+        meeting.summary = ["示例摘要1", "示例摘要2"]
+        meeting.save()
+        return Response({"summary": meeting.summary})
+
+# 声纹管理
+class VoiceprintViewSet(viewsets.ModelViewSet):
+    queryset = Voiceprint.objects.all().order_by('-upload_date')
+    serializer_class = VoiceprintSerializer

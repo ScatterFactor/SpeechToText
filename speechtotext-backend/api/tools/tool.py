@@ -16,6 +16,7 @@ from datetime import datetime
 
 class Procedure(object):
     def __init__(self,model):
+        hotword_file = "./hotwords.txt"
         self.model = model
         self.hotwords = ''
         if hotword_file is not None and os.path.exists(hotword_file):
