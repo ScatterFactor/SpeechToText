@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="基础增删改查">
+    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="让recognize接口能在swagger中看到">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/speech/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/speech/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -41,6 +41,9 @@
     &quot;accountId&quot;: &quot;f1a58975-2927-401b-98b0-c456c0538623&quot;
   }
 }</component>
+  <component name="HttpClientOnboardingState"><![CDATA[{
+  "isOnboardingCommentShown": true
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -164,7 +167,7 @@
       <workItem from="1756820667595" duration="1168000" />
       <workItem from="1756821858673" duration="250000" />
       <workItem from="1756822124532" duration="4487000" />
-      <workItem from="1756890731250" duration="5650000" />
+      <workItem from="1756890731250" duration="7427000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -238,7 +241,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756892211469</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="让recognize接口能在swagger中看到">
+      <option name="closed" value="true" />
+      <created>1756905788816</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1756905788816</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -271,6 +282,7 @@
     <MESSAGE value="init" />
     <MESSAGE value="合并文件" />
     <MESSAGE value="基础增删改查" />
-    <option name="LAST_COMMIT_MESSAGE" value="基础增删改查" />
+    <MESSAGE value="让recognize接口能在swagger中看到" />
+    <option name="LAST_COMMIT_MESSAGE" value="让recognize接口能在swagger中看到" />
   </component>
 </project>
