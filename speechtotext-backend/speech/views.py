@@ -6,7 +6,7 @@ from funasr import AutoModel
 from speech.tools.tool import Procedure   # 直接引入你的类
 
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from .models import Meeting, Voiceprint
 from .serializers import MeetingSerializer, VoiceprintSerializer
@@ -36,7 +36,7 @@ model = AutoModel(
 )
 procedure = Procedure(model)
 
-@csrf_exempt
+@api_view(['POST'])
 def recognize(request):
     if request.method == "POST" and request.FILES.get("audio"):
         audio_file = request.FILES["audio"]
