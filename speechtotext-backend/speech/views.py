@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import os, torch, psutil
 from funasr import AutoModel
-from api.tools.tool import Procedure   # 直接引入你的类
+from speech.tools.tool import Procedure   # 直接引入你的类
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
