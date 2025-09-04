@@ -512,16 +512,18 @@ export default {
         },
 
         getAllVoicePrints() {
-            fetch('${this.baseURL}/speech/voiceprints/', {
+            fetch(`${this.baseURL}/speech/voiceprints/`, {
                 method: "GET"
             })
                 .then(response => {
+                    console.log(response)
                     if (!response.ok) {
                         throw new Error("获取声纹数据失败");
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log(data)
                     this.voiceprints = data;
                 })
                 .catch(error => {
@@ -537,7 +539,7 @@ export default {
             const formData = new FormData();
             formData.append('audio', audioData);
             formData.append('timestamp', Date.now());
-            fetch('${this.baseURL}/api/upLoadAudio', {
+            fetch(`${this.baseURL}/api/upLoadAudio`, {
                 method: 'POST',
                 body: formData
             })
@@ -734,7 +736,7 @@ export default {
 
         confirmSaveRecording() {
 
-            fetch('${this.baseURL}/speech/meetings', {
+            fetch(`${this.baseURL}/speech/meetings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -786,7 +788,7 @@ export default {
             while (i < this.speakers.length) {
                 meetingContent += this.speakers[i].name + '：' + this.speakers[i].text + '\n';
             }
-            fetch('${this.baseURL}/speech/summarize/', {
+            fetch(`${this.baseURL}/speech/summarize/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -878,12 +880,12 @@ export default {
                 // alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
 
                 const formData = new FormData();
-                formData.append('speakerName', this.newVoiceprint.speakerName);
-                formData.append('fileName', this.newVoiceprint.file.name);
-                formData.append('audioFile', this.newVoiceprint.file);
+                formData.append('speaker_name', this.newVoiceprint.speakerName);
+                formData.append('audio_filename', this.newVoiceprint.file.name);
+                formData.append('audio_file', this.newVoiceprint.file);
                 // formData.append('timesStamp', newVoiceprintTimeStamp);
 
-                fetch('${this.baseURL}/speech/voiceprints/', {
+                fetch(`${this.baseURL}/speech/voiceprints/`, {
                     method: 'POST',
                     body: formData
                 })
@@ -935,15 +937,17 @@ export default {
         deleteVoiceprint(index, id) {
             if (confirm('确定要删除这个声纹吗？')) {
                 // this.voiceprints.splice(index, 1);
-                fetch(`${this.baseURL}/api/deleteVoiceprint/${id}`, {
+                fetch(`${this.baseURL}/speech/voiceprints/${id}/`, {
                     method: 'DELETE',
                 })
-                    .then(response => response.json())
+                    .then(response => {
+                        response;
+                        return ;
+                    })
                     .then(data => {
-                        if (data.success) {
-                            this.voiceprints.splice(index, 1);
-                            alert("声纹删除成功");
-                        }
+                        data;
+                        alert("声纹删除成功");
+                        this.getAllVoicePrints();
                     })
                     .catch(error => {
                         alert("声纹删除失败");
