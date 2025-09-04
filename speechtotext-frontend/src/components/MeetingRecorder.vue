@@ -89,7 +89,7 @@
                 <ul class="file-list">
                     <li v-for="(file, index) in savedFiles" :key="index" class="file-item">
                         <div class="file-name">
-                            <i class="fas fa-file-audio"></i> {{ file.name }}
+                            <i class="fas fa-file-audio"></i> {{ file.title }}
                         </div>
                         <div class="file-actions">
                             <button class="btn-icon" @click="viewMeetingHistory(file)" title="查看">
@@ -180,17 +180,21 @@
                     <div v-for="(voiceprint, index) in voiceprints" :key="index" class="voiceprint-item">
                         <div class="voiceprint-info">
                             <div class="speaker-avatar">
-                                {{ getInitials(voiceprint.speakerName) }}
+                                <!-- {{ getInitials(voiceprint.speakerName) }} -->
+                                {{ getInitials(voiceprint.speaker_name) }}
                             </div>
                             <div class="voiceprint-details">
-                                <h4>{{ voiceprint.speakerName }}</h4>
-                                <p>{{ voiceprint.fileName }}</p>
-                                <span class="upload-date">添加于: {{ voiceprint.uploadDate }}</span>
+                                <!-- <h4>{{ voiceprint.speakerName }}</h4>
+                                <p>{{ voiceprint.fileName }}</p> -->
+                                <h4>{{ voiceprint.speaker_name }}</h4>
+                                <p>{{ voiceprint.audio_filename }}</p>
+                                <span class="upload-date">添加于: {{ voiceprint.upload_date }}</span>
+                                <!-- <span class="upload-date">添加于: {{ voiceprint.uploadDate }}</span> -->
                                 <!-- <span class="upload-date">添加于: {{ voiceprint.timeStamp }}</span> -->
                             </div>
                         </div>
                         <div class="voiceprint-actions">
-                            <button class="btn-icon" @click="deleteVoiceprint(index, voiceprint.timeStamp)">
+                            <button class="btn-icon" @click="deleteVoiceprint(index, voiceprint.id)">
                                 <span><i class="fas fa-trash"></i>删除</span>
                             </button>
                         </div>
@@ -228,6 +232,8 @@ export default {
             showSettings: false,
             recordingInterval: null,
             recordingStartTime: 0, // 新增：记录开始录制的时间戳
+
+            //语音转文字变量
             speakers: [
                 {
                     // id: 1,
@@ -248,6 +254,7 @@ export default {
                     text: '关于数据库优化部分，我建议采用读写分离的方案，这可以提高系统在高并发情况下的性能表现。'
                 }
             ],
+            //会议总结变量
             summaryPoints: [
                 '讨论了Q2季度产品开发进度，前端完成80%，后端完成65%',
                 '计划下周中期进行第一次集成测试',
@@ -256,10 +263,22 @@ export default {
                 '需要确认测试团队是否提前介入'
                 ,
             ],
+            //会议列表变量
             savedFiles: [
-                { name: '2023-09-15_产品会议记录' },
-                { name: '2023-09-10_技术讨论记录' },
-                { name: '2023-09-05_项目启动会议' }
+                {
+                    "id": 3,
+                    "title": "测试会议1",
+                    "transcription": "我讲了一句话，我讲了两句话",
+                    "summary": "总结",
+                    "created_at": "2025-09-04T03:19:23.401305Z"
+                },
+                {
+                    "id": 1,
+                    "title": "测试修改会议1",
+                    "transcription": "我讲了三句话，我讲了两句话",
+                    "summary": "总结",
+                    "created_at": "2025-09-03T12:51:13.100165Z"
+                }
             ],
             settings: {
                 model: 'standard',
@@ -287,6 +306,12 @@ export default {
             showSaveModal: false, // 新增：控制保存模态框显示
             meetingTopic: '',     // 新增：用户输入的会议主题
 
+            //websocket相关变量
+            ws: null,
+            isWsConnected: false,
+            wsReconnectAttempts: 0,
+            maxReconnectAttempts: 5
+
         }
     },
 
@@ -301,9 +326,120 @@ export default {
         }
     },
     methods: {
+        //websocket传输语音数据的相关方法
+
+        // async startRecording() {
+        //     if (!this.isRecording) {
+        //         try {
+        //             this.isRecording = true;
+
+        //             // 记录开始时间
+        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+
+        //             // 启动计时器
+        //             this.recordingInterval = setInterval(() => {
+        //                 const elapsed = Date.now() - this.recordingStartTime;
+        //                 this.recordingTime = Math.round(elapsed / 1000);
+        //             }, 100);
+
+        //             // 请求麦克风权限
+        //             this.audioStream = await navigator.mediaDevices.getUserMedia({
+        //                 audio: {
+        //                     sampleRate: 16000, // 16kHz采样率
+        //                     channelCount: 1,   // 单声道
+        //                     echoCancellation: true,
+        //                     noiseSuppression: true
+        //                 },
+        //                 video: false
+        //             });
+
+        //             // 创建媒体录制器
+        //             const options = {
+        //                 mimeType: 'audio/webm;codecs=opus',
+        //                 audioBitsPerSecond: 128000 // 128kbps
+        //             };
+        //             this.mediaRecorder = new MediaRecorder(this.audioStream, options);
+
+        //             //创建websocket连接
+        //             const socket = new WebSocket('ws://')
+
+
+
+        //             // 存储音频块
+        //             this.audioChunks = [];
+
+        //             // 设置每秒生成数据块
+        //             this.mediaRecorder.start(1000); // 每1000毫秒（1秒）触发一次
+
+        //             // 处理音频数据块
+        //             this.mediaRecorder.ondataavailable = event => {
+        //                 if (event.data && event.data.size > 0) {
+        //                     // 保存到本地数组（可选）
+        //                     this.audioChunks.push(event.data);
+
+        //                     // 连接建立时触发
+        //                     socket.addEventListener('open', (event1) => {
+        //                         console.log('WebSocket连接已建立: ' + event1);
+        //                         const formData = new FormData();
+        //                         formData.append('audio', event.data);
+        //                         formData.append('timestamp', Date.now());
+        //                         // 发送数据到后端（示例）
+        //                         // const requestData = { action: 'getData', userId: 123 };
+        //                         socket.send(formData);
+        //                     });
+
+        //                     // 接收后端消息
+        //                     socket.addEventListener('message', (event1) => {
+        //                         const responseData = JSON.parse(event1.data);
+        //                         console.log('收到后端数据:', responseData);
+
+        //                         const theLastSpeaker = this.speakers[this.speakers.length - 1].name;
+        //                         const theCurrSpeaker = responseData.speaker;
+        //                         if (theCurrSpeaker === theLastSpeaker) {
+        //                             this.speakers[this.speakers.length - 1].text += responseData.text;
+        //                         }
+        //                         else {
+        //                             this.speakers.push({ name: responseData.name, time: responseData.time, text: responseData.text });
+        //                         }
+
+        //                         // 在这里处理返回的数据
+        //                         // processData(responseData);
+        //                     });
+        //                     // 上传到后端
+        //                     // this.uploadAudio(event.data);
+        //                 }
+        //             };
+
+        //             // 录音结束处理
+        //             this.mediaRecorder.onstop = () => {
+        //                 // 创建完整录音（可选）
+        //                 const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        //                 this.recordedAudio = URL.createObjectURL(audioBlob);
+        //                 console.log('录音完成', this.recordedAudio);
+        //                 // 关闭麦克风
+        //                 this.stopMicrophone();
+        //             };
+
+        //         } catch (error) {
+        //             console.error('启动录音失败:', error);
+        //             this.handleRecordingError(error);
+
+        //             // 回退到仅计时模式
+        //             this.isRecording = true;
+        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+
+        //             this.recordingInterval = setInterval(() => {
+        //                 const elapsed = Date.now() - this.recordingStartTime;
+        //                 this.recordingTime = Math.round(elapsed / 1000);
+        //             }, 100);
+        //         }
+        //     }
+        // },
+
+
         //获取所有会议主题列表
         getAllMeetingRecorder() {
-            fetch(`${this.baseURL}/api/getAllMeetingRecorder`, {
+            fetch(`${this.baseURL}/speech/meetings/`, {
                 method: 'GET'
             })
                 .then(response => {
@@ -314,7 +450,8 @@ export default {
                 })
                 .then(data => {
                     //假设数据中含有meetingTopics字段
-                    this.savedFiles = data.meetingTopics;
+                    // this.savedFiles = data.meetingTopics;
+                    this.savedFiles = data;
                 })
                 .catch(error => {
                     console.log(error);
@@ -323,30 +460,36 @@ export default {
 
         //查看某条会议记录
         viewMeetingHistory(file) {
-            // 会议逐渐
-            let meetingId = file.id;
-            fetch(`${this.baseURL}/api/getOneMeeting/${meetingId}`, {
-                method: 'GET'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`获取${file.title}的会议记录失败`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // 假设返回的data中有transcription、summary字段
-                    this.speakers = data.transcription;
-                    this.summaryPoints = data.summary;
-                })
-                .catch(error => {
-                    console.log(error);
-                })
+            // 会议ID
+            this.speakers = [];
+            this.speakers = file.transcription;
+
+
+
+
+            // let meetingId = file.id;
+            // fetch(`${this.baseURL}/api/getOneMeeting/${meetingId}`, {
+            //     method: 'GET'
+            // })
+            //     .then(response => {
+            //         if (!response.ok) {
+            //             throw new Error(`获取${file.title}的会议记录失败`);
+            //         }
+            //         return response.json();
+            //     })
+            //     .then(data => {
+            //         // 假设返回的data中有transcription、summary字段
+            //         this.speakers = data.transcription;
+            //         this.summaryPoints = data.summary;
+            //     })
+            //     .catch(error => {
+            //         console.log(error);
+            //     })
         },
 
         deleteMeetingHistory(file, index) {
             const meetingId = file.id;
-            fetch(`${this.baseURL}/api/deleteMeetingRecorder/${meetingId}`, {
+            fetch(`${this.baseURL}/speech/meetings/${meetingId}/`, {
                 method: 'DELETE'
             })
                 .then(response => {
@@ -369,7 +512,7 @@ export default {
         },
 
         getAllVoicePrints() {
-            fetch('${this.baseURL}/api/getAllVoicePrints', {
+            fetch('${this.baseURL}/speech/voiceprints/', {
                 method: "GET"
             })
                 .then(response => {
@@ -591,15 +734,15 @@ export default {
 
         confirmSaveRecording() {
 
-            fetch('${this.baseURL}/api/saveMeetingRecord', {
+            fetch('${this.baseURL}/speech/meetings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    meetingTopic: this.meetingTopic,
-                    meetingContent: this.speakers,
-                    meetingSummary: this.summaryPoints
+                    title: this.meetingTopic,
+                    transcription: this.speakers,
+                    summary: this.summaryPoints
                 })
             })
                 .then(response => {
@@ -643,13 +786,13 @@ export default {
             while (i < this.speakers.length) {
                 meetingContent += this.speakers[i].name + '：' + this.speakers[i].text + '\n';
             }
-            fetch('${this.baseURL}/api/aiSummary', {
+            fetch('${this.baseURL}/speech/summarize/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    meetingContent: meetingContent
+                    content: meetingContent
                 })
             })
                 .then(response => {
@@ -713,6 +856,8 @@ export default {
 
         addVoiceprint() {
             if (this.isVoiceprintValid) {
+
+                //这里用于静态页面展示
                 let newVoiceprintTimeStamp = Date.now();
                 this.voiceprints.unshift({
                     speakerName: this.newVoiceprint.speakerName,
@@ -736,9 +881,9 @@ export default {
                 formData.append('speakerName', this.newVoiceprint.speakerName);
                 formData.append('fileName', this.newVoiceprint.file.name);
                 formData.append('audioFile', this.newVoiceprint.file);
-                formData.append('timesStamp', newVoiceprintTimeStamp);
+                // formData.append('timesStamp', newVoiceprintTimeStamp);
 
-                fetch('${this.baseURL}/api/addVoicePrint', {
+                fetch('${this.baseURL}/speech/voiceprints/', {
                     method: 'POST',
                     body: formData
                 })
@@ -747,6 +892,7 @@ export default {
                         // 处理响应...
                         // response的结构：{"success":true, "message":"声纹添加成功"}
                         if (data.success) {
+                            this.getAllPrints();
                             //后端添加成功，同时更新前端声纹列表
                             // this.voiceprints.unshift({
                             //     speakerName: this.newVoiceprint.speakerName,
@@ -786,15 +932,11 @@ export default {
             this.showVoiceprintForm = false;
         },
 
-        deleteVoiceprint(index, timeStamp) {
+        deleteVoiceprint(index, id) {
             if (confirm('确定要删除这个声纹吗？')) {
                 // this.voiceprints.splice(index, 1);
-                fetch('${this.baseURL}/api/deleteVoiceprint', {
+                fetch(`${this.baseURL}/api/deleteVoiceprint/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ timeStamp: timeStamp })
                 })
                     .then(response => response.json())
                     .then(data => {
