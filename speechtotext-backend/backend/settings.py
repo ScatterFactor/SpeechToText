@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     "speech",
     'channels',
+    'corsheaders',
 ]
 
 # ASGI 配置
@@ -58,6 +59,7 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -66,6 +68,14 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# 允许所有域名访问（开发阶段可用）
+CORS_ALLOW_ALL_ORIGINS = True
+
+# 或者只允许前端的端口访问
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:8080",
+# ]
 
 ROOT_URLCONF = "backend.urls"
 

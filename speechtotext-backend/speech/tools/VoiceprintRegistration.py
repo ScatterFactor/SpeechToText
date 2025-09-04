@@ -13,6 +13,8 @@ import torch.nn.functional as F
 warnings.filterwarnings("ignore")
 
 
+
+
 class VoiceprintRegistration:
     def __init__(self, model: AutoModel,sr=16000):
         if not all(hasattr(model, attr) for attr in ['vad_model', 'spk_model', 'vad_kwargs', 'spk_kwargs']):

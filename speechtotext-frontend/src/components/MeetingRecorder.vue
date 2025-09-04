@@ -566,79 +566,136 @@ export default {
                 })
         },
 
-        async startRecording() {
-            if (!this.isRecording) {
-                try {
-                    this.isRecording = true;
+        // async startRecording() {
+        //     if (!this.isRecording) {
+        //         try {
+        //             this.isRecording = true;
 
-                    // 记录开始时间
-                    this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+        //             // 记录开始时间
+        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
 
-                    // 启动计时器
-                    this.recordingInterval = setInterval(() => {
-                        const elapsed = Date.now() - this.recordingStartTime;
-                        this.recordingTime = Math.round(elapsed / 1000);
-                    }, 100);
+        //             // 启动计时器
+        //             this.recordingInterval = setInterval(() => {
+        //                 const elapsed = Date.now() - this.recordingStartTime;
+        //                 this.recordingTime = Math.round(elapsed / 1000);
+        //             }, 100);
 
-                    // 请求麦克风权限
-                    this.audioStream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            sampleRate: 16000, // 16kHz采样率
-                            channelCount: 1,   // 单声道
-                            echoCancellation: true,
-                            noiseSuppression: true
-                        },
-                        video: false
-                    });
+        //             // 请求麦克风权限
+        //             this.audioStream = await navigator.mediaDevices.getUserMedia({
+        //                 audio: {
+        //                     sampleRate: 16000, // 16kHz采样率
+        //                     channelCount: 1,   // 单声道
+        //                     echoCancellation: true,
+        //                     noiseSuppression: true
+        //                 },
+        //                 video: false
+        //             });
 
-                    // 创建媒体录制器
-                    const options = {
-                        mimeType: 'audio/webm;codecs=opus',
-                        audioBitsPerSecond: 128000 // 128kbps
-                    };
-                    this.mediaRecorder = new MediaRecorder(this.audioStream, options);
+        //             // 创建媒体录制器
+        //             const options = {
+        //                 mimeType: 'audio/webm;codecs=opus',
+        //                 audioBitsPerSecond: 128000 // 128kbps
+        //             };
+        //             this.mediaRecorder = new MediaRecorder(this.audioStream, options);
 
-                    // 存储音频块
-                    this.audioChunks = [];
+        //             // 存储音频块
+        //             this.audioChunks = [];
 
-                    // 设置每秒生成数据块
-                    this.mediaRecorder.start(1000); // 每1000毫秒（1秒）触发一次
+        //             // 设置每秒生成数据块
+        //             this.mediaRecorder.start(1000); // 每1000毫秒（1秒）触发一次
 
-                    // 处理音频数据块
-                    this.mediaRecorder.ondataavailable = event => {
-                        if (event.data && event.data.size > 0) {
-                            // 保存到本地数组（可选）
-                            this.audioChunks.push(event.data);
+        //             // 处理音频数据块
+        //             this.mediaRecorder.ondataavailable = event => {
+        //                 if (event.data && event.data.size > 0) {
+        //                     // 保存到本地数组（可选）
+        //                     this.audioChunks.push(event.data);
 
-                            // 上传到后端
-                            this.uploadAudio(event.data);
-                        }
-                    };
+        //                     // 上传到后端
+        //                     this.uploadAudio(event.data);
+        //                 }
+        //             };
 
-                    // 录音结束处理
-                    this.mediaRecorder.onstop = () => {
-                        // 创建完整录音（可选）
-                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-                        this.recordedAudio = URL.createObjectURL(audioBlob);
-                        console.log('录音完成', this.recordedAudio);
-                        // 关闭麦克风
-                        this.stopMicrophone();
-                    };
+        //             // 录音结束处理
+        //             this.mediaRecorder.onstop = () => {
+        //                 // 创建完整录音（可选）
+        //                 const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        //                 this.recordedAudio = URL.createObjectURL(audioBlob);
+        //                 console.log('录音完成', this.recordedAudio);
+        //                 // 关闭麦克风
+        //                 this.stopMicrophone();
+        //             };
 
-                } catch (error) {
-                    console.error('启动录音失败:', error);
-                    this.handleRecordingError(error);
+        //         } catch (error) {
+        //             console.error('启动录音失败:', error);
+        //             this.handleRecordingError(error);
 
-                    // 回退到仅计时模式
-                    this.isRecording = true;
-                    this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+        //             // 回退到仅计时模式
+        //             this.isRecording = true;
+        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
 
-                    this.recordingInterval = setInterval(() => {
-                        const elapsed = Date.now() - this.recordingStartTime;
-                        this.recordingTime = Math.round(elapsed / 1000);
-                    }, 100);
-                }
+        //             this.recordingInterval = setInterval(() => {
+        //                 const elapsed = Date.now() - this.recordingStartTime;
+        //                 this.recordingTime = Math.round(elapsed / 1000);
+        //             }, 100);
+        //         }
+        //     }
+        // },
+        convertFloat32ToInt16(buffer) {
+            let l = buffer.length;
+            let buf = new Int16Array(l);
+            while (l--) {
+                let s = Math.max(-1, Math.min(1, buffer[l]));
+                buf[l] = s < 0 ? s * 0x8000 : s * 0x7FFF;
             }
+            return buf.buffer;
+        },
+        async startRecording() {
+            if (this.isRecording) return;
+
+            // 连接 WebSocket
+            this.socket = new WebSocket("ws://127.0.0.1:8000/ws/voice/");
+            this.socket.binaryType = "arraybuffer"; // 设置二进制模式
+
+            this.socket.onopen = () => {
+                console.log("WebSocket connected");
+            };
+
+            this.socket.onmessage = (event) => {
+                console.log("后端返回识别结果:", event.data);
+            };
+
+            this.socket.onclose = () => {
+                console.log("WebSocket closed");
+            };
+
+            // 获取麦克风权限
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // 创建 AudioContext
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: 16000   // 直接指定 16kHz，和后端模型对齐
+            });
+
+            const source = audioContext.createMediaStreamSource(stream);
+
+            // 用 ScriptProcessorNode 处理音频帧
+            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+
+            processor.onaudioprocess = (e) => {
+                const inputData = e.inputBuffer.getChannelData(0); // Float32 [-1, 1]
+                const pcm16 = this.convertFloat32ToInt16(inputData);
+                if (this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(pcm16.buffer); // 发送 ArrayBuffer
+                }
+            };
+
+            this.isRecording = true;
+            this.audioContext = audioContext;
+            this.processor = processor;
+            this.stream = stream;
         },
         // startRecording() {
         //     if (!this.isRecording) {

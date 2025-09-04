@@ -13,7 +13,6 @@ from datetime import datetime
 
 
 
-
 class Procedure(object):
     def __init__(self,model):
         hotword_file = "./hotwords.txt"
@@ -113,7 +112,7 @@ class Procedure(object):
         # formatted_time2 = dt.strftime("%Y-%m-%d %H:%M:%S")
         return b"".join(frames), timestamp1#formatted_time1, formatted_time2
 
-    def get_speech_segments_with_embeddings(self, audio_bytes: bytes,time_start, **kwargs) -> List[Dict[str, Any]]:
+    def get_speech_segments_with_embeddings(self, audio_bytes: bytes, time_start, reg_system, **kwargs) -> List[Dict[str, Any]]:
         """
         处理音频字节流，返回每个语音片段的文本和声纹嵌入。
         """
@@ -172,10 +171,21 @@ class Procedure(object):
             )
             segment_embedding = spk_result[0]['spk_embedding']
 
+            # processed_segments.append({
+            #     "text": segment_text,
+            #     "embedding": segment_embedding,
+            #     "time": [datetime.fromtimestamp(time_start+start_ms//1000.0).strftime("%Y-%m-%d %H:%M:%S"),datetime.fromtimestamp(time_start+end_ms//1000.0).strftime("%Y-%m-%d %H:%M:%S")]
+            # })
+            # 🔹 用注册系统识别说话人
+            speaker = reg_system.embedding_to_speaker(segment_embedding, threshold=0.6)
+
             processed_segments.append({
                 "text": segment_text,
-                "embedding": segment_embedding,
-                "time": [datetime.fromtimestamp(time_start+start_ms//1000.0).strftime("%Y-%m-%d %H:%M:%S"),datetime.fromtimestamp(time_start+end_ms//1000.0).strftime("%Y-%m-%d %H:%M:%S")]
+                "speaker": speaker,  # 真实的说话人
+                "time": [
+                    time_start + start_ms / 1000.0,
+                    time_start + end_ms / 1000.0
+                ]
             })
 
         print("\n所有片段处理完毕。")
