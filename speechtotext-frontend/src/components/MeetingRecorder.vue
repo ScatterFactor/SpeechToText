@@ -27,7 +27,7 @@
                         :class="['speaker', `speaker-${speaker.id}`]">
                         <div class="speaker-header">
                             <div class="speaker-icon">S{{ speaker.id }}</div>
-                            <strong>{{ speaker.name }}</strong>
+                            <strong>{{ speaker.speaker }}</strong>
                             <span class="time">{{ speaker.time }}</span>
                         </div>
                         <div class="speaker-text">
@@ -261,44 +261,25 @@ export default {
             recordingStartTime: 0, // 新增：记录开始录制的时间戳
 
             //语音转文字变量
-            speakers: [
-                {
-                    // id: 1,
-                    name: '发言人 1',
-                    time: '10:05 AM',
-                    text: '大家好，欢迎参加今天的项目会议。我们今天主要讨论Q2季度产品开发进度和下一步计划。'
-                },
-                {
-                    // id: 2,
-                    name: '发言人 2',
-                    time: '10:07 AM',
-                    text: '目前前端开发已完成80%，后端API开发进度稍慢，大约完成65%。我们需要在下周中期进行第一次集成测试。'
-                },
-                {
-                    // id: 3,
-                    name: '发言人 3',
-                    time: '10:12 AM',
-                    text: '关于数据库优化部分，我建议采用读写分离的方案，这可以提高系统在高并发情况下的性能表现。'
-                }
-            ],
+            speakers: [],
             //会议总结变量
-            summaryPoints: "会\n议总结\n会议总结\n会议总\n结\n会议\n总结会\n议\n总结\n会议\n总结\n会议总\n结会\n议\n总结\n会议总结会议\n总结会\n议\n总\n结会议总结",
+            summaryPoints: "",
             //会议列表变量
             savedFiles: [
-                {
-                    "id": 3,
-                    "title": "测试会议1",
-                    "transcription": "我讲了一句话，我讲了两句话",
-                    "summary": "总结",
-                    "created_at": "2025-09-04T03:19:23.401305Z"
-                },
-                {
-                    "id": 1,
-                    "title": "测试修改会议1",
-                    "transcription": "我讲了三句话，我讲了两句话",
-                    "summary": "总结",
-                    "created_at": "2025-09-03T12:51:13.100165Z"
-                }
+                // {
+                //     "id": 3,
+                //     "title": "测试会议1",
+                //     "transcription": "我讲了一句话，我讲了两句话",
+                //     "summary": "总结",
+                //     "created_at": "2025-09-04T03:19:23.401305Z"
+                // },
+                // {
+                //     "id": 1,
+                //     "title": "测试修改会议1",
+                //     "transcription": "我讲了三句话，我讲了两句话",
+                //     "summary": "总结",
+                //     "created_at": "2025-09-03T12:51:13.100165Z"
+                // }
             ],
             settings: {
                 model: 'standard',
@@ -675,63 +656,128 @@ export default {
         //         }
         //     }
         // },
-        convertFloat32ToInt16(buffer) {
-            let l = buffer.length;
-            let buf = new Int16Array(l);
-            while (l--) {
-                let s = Math.max(-1, Math.min(1, buffer[l]));
-                buf[l] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            return buf.buffer;
-        },
-        async startRecording() {
-            if (this.isRecording) return;
+        // async startRecording() {
+        //     if (this.isRecording) return;
 
-            // 连接 WebSocket
-            this.socket = new WebSocket("ws://127.0.0.1:8000/ws/voice/");
-            this.socket.binaryType = "arraybuffer"; // 设置二进制模式
+        //     // 连接 WebSocket
+        //     this.socket = new WebSocket("ws://127.0.0.1:8000/ws/voice/");
+        //     this.socket.binaryType = "arraybuffer"; // 设置二进制模式
 
-            this.socket.onopen = () => {
-                console.log("WebSocket connected");
-            };
+        //     this.socket.onopen = () => {
+        //         console.log("WebSocket connected");
+        //     };
 
-            this.socket.onmessage = (event) => {
-                console.log("后端返回识别结果:", event.data);
-            };
+        //     this.socket.onmessage = (event) => {
+        //         console.log("后端返回识别结果:", event.data);
+        //     };
 
-            this.socket.onclose = () => {
-                console.log("WebSocket closed");
-            };
+        //     this.socket.onclose = () => {
+        //         console.log("WebSocket closed");
+        //     };
 
-            // 获取麦克风权限
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        //     // 获取麦克风权限
+        //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-            // 创建 AudioContext
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                sampleRate: 16000   // 直接指定 16kHz，和后端模型对齐
-            });
+        //     // 创建 AudioContext
+        //     const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+        //         sampleRate: 16000   // 直接指定 16kHz，和后端模型对齐
+        //     });
 
-            const source = audioContext.createMediaStreamSource(stream);
+        //     const source = audioContext.createMediaStreamSource(stream);
 
-            // 用 ScriptProcessorNode 处理音频帧
-            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+        //     // 用 ScriptProcessorNode 处理音频帧
+        //     const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-            source.connect(processor);
-            processor.connect(audioContext.destination);
+        //     source.connect(processor);
+        //     processor.connect(audioContext.destination);
 
-            processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0); // Float32 [-1, 1]
-                const pcm16 = this.convertFloat32ToInt16(inputData);
-                if (this.socket.readyState === WebSocket.OPEN) {
-                    this.socket.send(pcm16.buffer); // 发送 ArrayBuffer
-                }
-            };
+        //     processor.onaudioprocess = (e) => {
+        //         const inputData = e.inputBuffer.getChannelData(0); // Float32 [-1, 1]
+        //         const pcm16 = this.convertFloat32ToInt16(inputData);
+        //         if (this.socket.readyState === WebSocket.OPEN) {
+        //             this.socket.send(pcm16.buffer); // 发送 ArrayBuffer
+        //         }
+        //     };
 
-            this.isRecording = true;
-            this.audioContext = audioContext;
-            this.processor = processor;
-            this.stream = stream;
-        },
+        //     this.isRecording = true;
+        //     this.audioContext = audioContext;
+        //     this.processor = processor;
+        //     this.stream = stream;
+        // },
+         // async startRecording() {
+        //     if (!this.isRecording) {
+        //         try {
+        //             this.isRecording = true;
+
+        //             // 记录开始时间
+        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+
+        //             // 启动计时器
+        //             this.recordingInterval = setInterval(() => {
+        //                 const elapsed = Date.now() - this.recordingStartTime;
+        //                 this.recordingTime = Math.round(elapsed / 1000);
+        //             }, 100);
+
+        //             // 请求麦克风权限
+        //             this.audioStream = await navigator.mediaDevices.getUserMedia({
+        //                 audio: {
+        //                     sampleRate: 16000, // 16kHz采样率
+        //                     channelCount: 1,   // 单声道
+        //                     echoCancellation: true,
+        //                     noiseSuppression: true
+        //                 },
+        //                 video: false
+        //             });
+
+        //             // 创建媒体录制器
+        //             const options = {
+        //                 mimeType: 'audio/webm;codecs=opus',
+        //                 audioBitsPerSecond: 128000 // 128kbps
+        //             };
+        //             this.mediaRecorder = new MediaRecorder(this.audioStream, options);
+
+        //             // 存储音频块
+        //             this.audioChunks = [];
+
+        //             // 设置每秒生成数据块
+        //             this.mediaRecorder.start(1000); // 每1000毫秒（1秒）触发一次
+
+        //             // 处理音频数据块
+        //             this.mediaRecorder.ondataavailable = event => {
+        //                 if (event.data && event.data.size > 0) {
+        //                     // 保存到本地数组（可选）
+        //                     this.audioChunks.push(event.data);
+
+        //                     // 上传到后端
+        //                     this.uploadAudio(event.data);
+        //                 }
+        //             };
+
+        //             // 录音结束处理
+        //             this.mediaRecorder.onstop = () => {
+        //                 // 创建完整录音（可选）
+        //                 const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        //                 this.recordedAudio = URL.createObjectURL(audioBlob);
+        //                 console.log('录音完成', this.recordedAudio);
+        //                 // 关闭麦克风
+        //                 this.stopMicrophone();
+        //             };
+
+        //         } catch (error) {
+        //             console.error('启动录音失败:', error);
+        //             this.handleRecordingError(error);
+
+        //             // 回退到仅计时模式
+        //             this.isRecording = true;
+        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+
+        //             this.recordingInterval = setInterval(() => {
+        //                 const elapsed = Date.now() - this.recordingStartTime;
+        //                 this.recordingTime = Math.round(elapsed / 1000);
+        //             }, 100);
+        //         }
+        //     }
+        // },
         // startRecording() {
         //     if (!this.isRecording) {
         //         this.isRecording = true;
@@ -748,6 +794,140 @@ export default {
         //         }, 100); // 每100毫秒更新一次，更平滑
         //     }
         // },
+        mergeBuffers(bufferQueue) {
+            const length = bufferQueue.reduce((sum, buf) => sum + buf.length, 0);
+            const result = new Float32Array(length);
+            let offset = 0;
+            for (const buf of bufferQueue) {
+                result.set(buf, offset);
+                offset += buf.length;
+            }
+            return result;
+        },
+
+        convertFloat32ToInt16(buffer) {
+            const l = buffer.length;
+            const buf = new Int16Array(l);
+            for (let i = 0; i < l; i++) {
+                let s = Math.max(-1, Math.min(1, buffer[i]));
+                buf[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+            }
+            return buf;
+        },
+        async startRecording() {
+            if (this.isRecording) return;
+
+            try {
+                this.speakers = [];
+                this.isRecording = true;
+                this.bufferedPCM = [];
+                this.bufferedTime = 0;
+
+                // 记录开始时间
+                this.recordingStartTime = Date.now() - (this.recordingTime || 0) * 1000;
+
+                // 启动计时器
+                this.recordingInterval = setInterval(() => {
+                    const elapsed = Date.now() - this.recordingStartTime;
+                    this.recordingTime = Math.round(elapsed / 1000);
+                }, 100);
+
+                // 获取麦克风权限
+                this.stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    },
+                    video: false
+                });
+
+                // 创建 AudioContext
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+
+                const source = this.audioContext.createMediaStreamSource(this.stream);
+
+                // ScriptProcessorNode 处理音频帧
+                const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                source.connect(processor);
+                processor.connect(this.audioContext.destination);
+
+                processor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0); // Float32 [-1,1]
+                    const pcm16 = this.convertFloat32ToInt16(inputData);
+
+                    // 缓存 PCM16
+                    this.bufferedPCM.push(pcm16);
+                    this.bufferedTime += inputData.length / 16000; // 秒数
+
+                    // 如果累计到 5 秒就发送
+                    if (this.bufferedTime >= 5) {
+                        this.sendBufferedAudio();
+                        this.bufferedPCM = [];
+                        this.bufferedTime = 0;
+                    }
+                };
+
+                this.processor = processor;
+
+            } catch (error) {
+                console.error("启动录音失败:", error);
+                this.isRecording = false;
+            }
+        },
+
+        // 发送缓存 PCM16 给后端
+        sendBufferedAudio() {
+            if (!this.bufferedPCM.length) return;
+
+            // 合并所有 Float32 -> Int16 的块
+            let totalLength = this.bufferedPCM.reduce((sum, arr) => sum + arr.length, 0);
+            let merged = new Int16Array(totalLength);
+            let offset = 0;
+            this.bufferedPCM.forEach(arr => {
+                merged.set(arr, offset);
+                offset += arr.length;
+            });
+
+            // 发送给后端
+            const blob = new Blob([merged.buffer], { type: 'application/octet-stream' });
+            const formData = new FormData();
+            formData.append('audio', blob, 'audio.pcm');
+
+            fetch('http://127.0.0.1:8000/speech/recognize/', {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json())
+            .then(data => {
+                console.log("识别结果:", data);
+                console.log("识别结果数据类型:", typeof data);
+                console.log("识别结果对象的属性:", Object.keys(data));
+                
+                let speech_result = data.results;
+                console.log('data.result的内容：', data.results);
+                console.log('speech_result的数据类型：', speech_result instanceof Array);
+
+                let i =0;
+                for (i =0; i<speech_result.length;i++){
+
+                    let theLastSpeaker = (this.speakers.length > 0) ? this.speakers[this.speakers.length - 1].speaker : ''; 
+                    let theCurrSpeaker = speech_result[i].speaker;
+                    if (theLastSpeaker === theCurrSpeaker){
+                        this.speakers[this.speakers.length - 1].text += " " + speech_result[i].text;
+                    }
+                    else{
+                        this.speakers.push({speaker: theCurrSpeaker, text: speech_result[i].text, time: speech_result[i].time[0]});
+                    }
+                }
+            })
+            .catch(err => console.error(err));
+        },
+
+
+
         pauseRecording() {
             this.pauseRecording_ = true;
             this.isRecording = false;
@@ -879,7 +1059,7 @@ export default {
             let meetingContent = '';
             let i = 0;
             while (i < this.speakers.length) {
-                meetingContent += this.speakers[i].name + '：' + this.speakers[i].text + '\n';
+                meetingContent += this.speakers[i].speaker + '：' + this.speakers[i].text + '\n';
                 i += 1;
             }
             this.summaryPoints = "AI摘要生成中..."
@@ -984,12 +1164,11 @@ export default {
                     method: 'POST',
                     body: formData
                 })
-                    .then(response => response.json())
+                    .then(response => {response;return;})
                     .then(data => {
                         // 处理响应...
                         // response的结构：{"success":true, "message":"声纹添加成功"}
-                        if (data.success) {
-                            this.getAllPrints();
+                            this.getAllVoicePrints();
                             //后端添加成功，同时更新前端声纹列表
                             // this.voiceprints.unshift({
                             //     speakerName: this.newVoiceprint.speakerName,
@@ -1005,14 +1184,12 @@ export default {
                             //     }),
                             //     timeStamp: newVoiceprintTimeStamp
                             // });
-                            alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
-                        } else {
-                            alert('声纹添加失败');
-                        }
+                            alert(`声纹添加成功`);
+                            data;
                     })
                     .catch(error => {
                         // 错误处理...
-                        // alert('声纹添加失败');
+                        alert('声纹添加失败');
                         console.log(error);
                     });
 
@@ -1147,14 +1324,20 @@ export default {
     box-shadow: 极 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.s极aker-header {
+
+.speaker-header {
     display: flex;
     align-items: center;
+    justify-content: center; /* 新增：水平居中 */
     gap: 10px;
     margin-bottom: 5px;
+    position: relative; /* 新增：为绝对定位做准备 */
 }
 
 .speaker-icon {
+    position: absolute; /* 新增：绝对定位 */
+    left: 0; /* 新增：固定在左侧 */
+    /* 其他原有样式保持不变 */
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1164,6 +1347,11 @@ export default {
     color: white;
     font-weight: bold;
 }
+
+.speaker-text {
+    text-align: left;
+}
+
 
 .speaker-1 .speaker-icon {
     background-color: #6a11cb;
