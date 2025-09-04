@@ -57,11 +57,21 @@
                     </button>
                 </div>
 
-                <!-- <div class="summary-content">
-                    <div v-for="(point, index) in summaryPoints" :key="index" class="summary-point">
-                        {{ point }}
+                <div class="summary-content">
+                    <div class="summary-point">
+                        {{ summaryPoints }}
                     </div>
-                </div> -->
+                </div>
+            </div>
+
+            <!-- <div class="card summary-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">会议摘要</h2>
+                    <button class="btn btn-primary" @click="generateSummary">
+                        <i class="fas fa-sync"></i> 生成摘要
+                    </button>
+                </div>
+
 
                 <div class="summary-content">
                     <div class="summary-point">
@@ -69,11 +79,11 @@
                     </div>
                 </div>
 
-            </div>
+            </div> -->
         </div>
 
         <div class="management-panel">
-            <div class="card">
+            <!-- <div class="card">
                 <div class="panel-header">
                     <h2 class="panel-title">会议记录管理</h2>
                 </div>
@@ -89,6 +99,30 @@
                             </button>
                             <button class="btn-icon" @click="deleteMeetingHistory(file, index)" title="删除">
                                 <i class="fas fa-trash"></i>删除
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+            </div> -->
+
+            <div class="card">
+                <div class="panel-header">
+                    <h2 class="panel-title">会议记录管理</h2>
+                </div>
+
+                <ul class="file-list">
+                    <li v-for="(file, index) in savedFiles" :key="index" class="file-item">
+                        <div class="file-name">
+                            <i class="fas fa-file-audio"></i> {{ file.title }}
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn-view" @click="viewMeetingHistory(file)" title="查看">
+                                <i class="fas fa-eye">查看</i>
+                                <!-- <span>查看</span> -->
+                            </button>
+                            <button class="btn-delete" @click="deleteMeetingHistory(file, index)" title="删除">
+                                <i class="fas fa-trash">删除</i>
+                                <!-- <span>删除</span> -->
                             </button>
                         </div>
                     </li>
@@ -186,8 +220,9 @@
                             </div>
                         </div>
                         <div class="voiceprint-actions">
-                            <button class="btn-icon" @click="deleteVoiceprint(index, voiceprint.id)">
-                                <span><i class="fas fa-trash"></i>删除</span>
+                            <button class="btn-delete" @click="deleteVoiceprint(index, voiceprint.id)">
+                                <i class="fas fa-trash"></i>
+                                <span>删除</span>
                             </button>
                         </div>
                     </div>
@@ -247,7 +282,7 @@ export default {
                 }
             ],
             //会议总结变量
-            summaryPoints: "会议总结会议总结",
+            summaryPoints: "会\n议总结\n会议总结\n会议总\n结\n会议\n总结会\n议\n总结\n会议\n总结\n会议总\n结会\n议\n总结\n会议总结会议\n总结会\n议\n总\n结会议总结",
             //会议列表变量
             savedFiles: [
                 {
@@ -437,7 +472,7 @@ export default {
                     //假设数据中含有meetingTopics字段
                     // this.savedFiles = data.meetingTopics;
                     this.savedFiles = data;
-                    console.log("获取的会议列表",this.savedFiles)
+                    console.log("获取的会议列表", this.savedFiles)
                 })
                 .catch(error => {
                     console.log(error);
@@ -804,7 +839,7 @@ export default {
                     if (!response.ok) {
                         throw new Error('保存失败')
                     }
-                    return ;
+                    return;
                 })
                 .then(data => {
                     // 假设data中含有success字段
@@ -845,7 +880,7 @@ export default {
             let i = 0;
             while (i < this.speakers.length) {
                 meetingContent += this.speakers[i].name + '：' + this.speakers[i].text + '\n';
-                i+=1;
+                i += 1;
             }
             this.summaryPoints = "AI摘要生成中..."
             fetch(`${this.baseURL}/speech/summarize/`, {
@@ -1495,5 +1530,152 @@ export default {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 20px;
+}
+
+.file-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-view,
+.btn-delete {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-view {
+    background-color: #e3f2fd;
+    color: #1a73e8;
+}
+
+.btn-view:hover {
+    background-color: #d0e4fc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(26, 115, 232, 0.2);
+}
+
+.btn-delete {
+    background-color: #ffebee;
+    color: #e53935;
+}
+
+.btn-delete:hover {
+    background-color: #ffcdd2;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(229, 57, 53, 0.2);
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.3s;
+}
+
+.file-item:hover {
+    background-color: #f9f9f9;
+}
+
+.file-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+}
+
+.file-name i {
+    color: #6a11cb;
+}
+
+.panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* 会议记录管理按钮样式 - 修复水平排列 */
+.file-actions .btn-view,
+.file-actions .btn-delete,
+.voiceprint-actions .btn-delete {
+    display: inline-flex;
+    flex-direction: row;
+    /* 确保水平排列 */
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    /* 增加水平内边距 */
+    border-radius: 20px;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: auto;
+    /* 移除固定宽度 */
+    height: auto;
+    /* 移除固定高度 */
+}
+
+.file-actions .btn-view {
+    background-color: #e3f2fd;
+    color: #1a73e8;
+}
+
+.file-actions .btn-delete,
+.voiceprint-actions .btn-delete {
+    background-color: #ffebee;
+    color: #e53935;
+}
+
+.file-actions .btn-view:hover {
+    background-color: #d0e4fc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(26, 115, 232, 0.2);
+}
+
+.file-actions .btn-delete:hover,
+.voiceprint-actions .btn-delete:hover {
+    background-color: #ffcdd2;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(229, 57, 53, 0.2);
+}
+
+/* 确保图标和文字水平排列 */
+.file-actions .btn-view i,
+.file-actions .btn-delete i,
+.voiceprint-actions .btn-delete i {
+    display: inline;
+    /* 确保图标是内联元素 */
+    margin: 0;
+    /* 移除外边距 */
+}
+
+/* 确保文件操作区域横向排列 */
+.file-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.summary-content {
+    height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    text-align: left;
 }
 </style>
