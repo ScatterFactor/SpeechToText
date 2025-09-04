@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 import torch
 import numpy as np
 import sklearn.metrics.pairwise
@@ -22,7 +24,7 @@ class VoiceprintRegistration:
         self.speakers = {}
         self.sr = sr
 
-    def _load_audio_as_bytes(self, filepath: str) -> bytes | None:
+    def _load_audio_as_bytes(self, filepath: str) -> Optional[bytes]:
         try:
             out_bytes, _ = (
                 ffmpeg.input(filepath,threads=0, hwaccel='cuda')

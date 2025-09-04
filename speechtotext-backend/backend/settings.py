@@ -40,7 +40,18 @@ INSTALLED_APPS = [
     "rest_framework",
     'drf_spectacular',
     "speech",
+    'channels',
 ]
+
+# ASGI 配置
+ASGI_APPLICATION = "backend.asgi.application"
+
+# 如果使用 Redis Channel Layer
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # 生产用 "channels_redis.core.RedisChannelLayer"
+    }
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',

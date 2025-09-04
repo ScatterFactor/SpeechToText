@@ -1,6 +1,10 @@
 import json
+import subprocess
+import os
 
 import requests
+
+import tempfile
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
@@ -12,7 +16,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from .models import Meeting, Voiceprint
-from .serializers import MeetingSerializer, VoiceprintSerializer
+from .serializers import MeetingSerializer, VoiceprintSerializer, VoiceprintListSerializer
+from .tools.VoiceprintRegistration import VoiceprintRegistration
 
 # 初始化模型（只加载一次，避免每次请求都加载）
 home_directory = os.path.expanduser("~")
@@ -95,7 +100,103 @@ class MeetingViewSet(viewsets.ModelViewSet):
     serializer_class = MeetingSerializer
 
 
-# 声纹管理
+
+
+
+
+
+
+# -------------------------
+# 初始化模型和注册系统
+# -------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+registration_system = VoiceprintRegistration(model=model)
+
+# -------------------------
+# 加载数据库中已有声纹
+# -------------------------
+for record in Voiceprint.objects.all():
+    # 将 JSON 字段转回 tensor
+    embedding_tensor = torch.tensor(record.embedding, dtype=torch.float32)
+    registration_system.speakers.setdefault(record.speaker_name, []).append(embedding_tensor)
+
+# -------------------------
+# DRF ViewSet
+# -------------------------
 class VoiceprintViewSet(viewsets.ModelViewSet):
     queryset = Voiceprint.objects.all().order_by('-upload_date')
     serializer_class = VoiceprintSerializer
+
+    def list(self, request, *args, **kwargs):
+        self.serializer_class = VoiceprintListSerializer
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        speaker_name = request.data.get('speaker_name')
+        audio_file = request.FILES.get('audio_file')
+        audio_filename = request.data.get('audio_filename', '')
+
+        if not speaker_name or not audio_file:
+            return Response({"error": "speaker_name 和 audio_file 必填"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 读取前端上传的音频 bytes
+        audio_bytes_raw = audio_file.read()
+
+        # 先写临时文件
+        with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp_file:
+            tmp_file.write(audio_bytes_raw)
+            tmp_file.flush()
+            tmp_input_path = tmp_file.name
+
+        # 解码成 PCM16 WAV bytes
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav_file:
+            tmp_wav_path = tmp_wav_file.name
+
+        subprocess.run([
+            "ffmpeg", "-y", "-i", tmp_input_path, "-ac", "1", "-ar", "16000",
+            "-f", "wav", tmp_wav_path
+        ], check=True)
+
+        with open(tmp_wav_path, "rb") as f:
+            audio_bytes = f.read()
+
+        # 删除临时文件
+        os.remove(tmp_input_path)
+        os.remove(tmp_wav_path)
+
+        # 调用 bytes_to_speaker 判断是否已经注册
+        recognized_speaker = registration_system.bytes_to_speaker(audio_bytes, threshold=0.6)
+
+        # 如果是新说话人或者想更新 embedding
+        if recognized_speaker != speaker_name:
+            # 使用 register 提取 embedding 并存入 speakers
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                tmp_file.write(audio_bytes)
+                tmp_file.flush()
+                tmp_path = tmp_file.name
+
+            try:
+                registration_system.register(tmp_path, speaker_name)
+            finally:
+                os.remove(tmp_path)  # 手动删除临时文件
+
+        # 获取最新 embedding
+        embeddings_list = registration_system.speakers.get(speaker_name, [])
+        if not embeddings_list:
+            return Response({"error": "未能生成有效 embedding"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        embedding_tensor = embeddings_list[-1]
+        embedding_list = embedding_tensor.detach().cpu().numpy().tolist()  # 转成 list 保存
+
+        # 保存数据库
+        voiceprint_data = {
+            "speaker_name": speaker_name,
+            "embedding": embedding_list,
+            "audio_filename": audio_filename
+        }
+
+        serializer = self.get_serializer(data=voiceprint_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
