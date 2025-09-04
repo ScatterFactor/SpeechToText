@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="完成声纹识别模块">
-      <change afterPath="$PROJECT_DIR$/speech/singleton.py" afterDir="false" />
+    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="声音识别模块初步">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/asgi.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/asgi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/speech/consumers.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/consumers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/speech/tools/VoiceprintRegistration.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/tools/VoiceprintRegistration.py" afterDir="false" />
@@ -192,7 +189,7 @@
       <workItem from="1756890731250" duration="7427000" />
       <workItem from="1756951764421" duration="10000" />
       <workItem from="1756951820111" duration="3705000" />
-      <workItem from="1756955615586" duration="14043000" />
+      <workItem from="1756955615586" duration="24202000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -282,7 +279,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756968572951</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="声音识别模块初步">
+      <option name="closed" value="true" />
+      <created>1756976051411</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1756976051411</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -317,7 +322,8 @@
     <MESSAGE value="基础增删改查" />
     <MESSAGE value="让recognize接口能在swagger中看到" />
     <MESSAGE value="完成声纹识别模块" />
-    <option name="LAST_COMMIT_MESSAGE" value="完成声纹识别模块" />
+    <MESSAGE value="声音识别模块初步" />
+    <option name="LAST_COMMIT_MESSAGE" value="声音识别模块初步" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/speechtotext_backend$tool.coverage" NAME="tool 覆盖结果" MODIFIED="1756958515758" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/speech/tools" />

@@ -167,9 +167,41 @@ class VoiceprintRegistration:
         print(f"最高相似度 {max_similarity:.4f} (阈值: {threshold})")
         return recognized_speaker
 
-    def embedding_to_speaker(self, input_embedding: torch.Tensor, threshold: float = 0.6) -> str:
+    # def embedding_to_speaker(self, input_embedding: torch.Tensor, threshold: float = 0.6) -> str:
+    #     """
+    #     输入已经提取好的 embedding，返回匹配的说话人
+    #     """
+    #     if not self.speakers:
+    #         print("识别错误：无已注册声纹。")
+    #         return "未知说话人"
+    #
+    #     if torch.isnan(input_embedding).any():
+    #         print("识别失败：输入 embedding 含 NaN。")
+    #         return "未知说话人"
+    #
+    #     input_embedding_np = input_embedding.detach().cpu().numpy().reshape(1, -1)
+    #
+    #     max_similarity = -1.0
+    #     recognized_speaker = "未知说话人"
+    #
+    #     for text, registered_embeddings in self.speakers.items():
+    #         for reg_emb in registered_embeddings:
+    #             if torch.isnan(reg_emb).any():
+    #                 print(f"警告：跳过 NaN embedding (说话人 {text})")
+    #                 continue
+    #             reg_emb_np = reg_emb.cpu().numpy().reshape(1, -1)
+    #             similarity = sklearn.metrics.pairwise.cosine_similarity(input_embedding_np, reg_emb_np)[0][0]
+    #             print(f"与 '{text}' 的相似度: {similarity:.4f}")
+    #             if similarity > max_similarity:
+    #                 max_similarity = similarity
+    #                 if max_similarity > threshold:
+    #                     recognized_speaker = text
+    #
+    #     print(f"最高相似度 {max_similarity:.4f} (阈值: {threshold})")
+    #     return recognized_speaker
+    def embedding_to_speaker(self, input_embedding: torch.Tensor) -> str:
         """
-        输入已经提取好的 embedding，返回匹配的说话人
+        输入已经提取好的 embedding，返回相似度最高的说话人
         """
         if not self.speakers:
             print("识别错误：无已注册声纹。")
@@ -184,20 +216,19 @@ class VoiceprintRegistration:
         max_similarity = -1.0
         recognized_speaker = "未知说话人"
 
-        for text, registered_embeddings in self.speakers.items():
+        for speaker_name, registered_embeddings in self.speakers.items():
             for reg_emb in registered_embeddings:
                 if torch.isnan(reg_emb).any():
-                    print(f"警告：跳过 NaN embedding (说话人 {text})")
+                    print(f"警告：跳过 NaN embedding (说话人 {speaker_name})")
                     continue
                 reg_emb_np = reg_emb.cpu().numpy().reshape(1, -1)
                 similarity = sklearn.metrics.pairwise.cosine_similarity(input_embedding_np, reg_emb_np)[0][0]
-                print(f"与 '{text}' 的相似度: {similarity:.4f}")
+                print(f"与 '{speaker_name}' 的相似度: {similarity:.4f}")
                 if similarity > max_similarity:
                     max_similarity = similarity
-                    if max_similarity > threshold:
-                        recognized_speaker = text
+                    recognized_speaker = speaker_name
 
-        print(f"最高相似度 {max_similarity:.4f} (阈值: {threshold})")
+        print(f"最高相似度 {max_similarity:.4f}")
         return recognized_speaker
 
     def bytes_to_speaker(self, audio_bytes: bytes, threshold: float = 0.6) -> str:

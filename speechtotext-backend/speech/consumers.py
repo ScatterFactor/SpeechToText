@@ -1,7 +1,5 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from tools.tool import Procedure
-from tools import VoiceprintRegistration
 from funasr import AutoModel
 import os
 import torch

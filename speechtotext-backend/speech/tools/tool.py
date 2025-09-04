@@ -176,16 +176,18 @@ class Procedure(object):
             #     "embedding": segment_embedding,
             #     "time": [datetime.fromtimestamp(time_start+start_ms//1000.0).strftime("%Y-%m-%d %H:%M:%S"),datetime.fromtimestamp(time_start+end_ms//1000.0).strftime("%Y-%m-%d %H:%M:%S")]
             # })
-            # 🔹 用注册系统识别说话人
-            speaker = reg_system.embedding_to_speaker(segment_embedding, threshold=0.6)
+            #  用注册系统识别说话人
+            speaker = reg_system.embedding_to_speaker(segment_embedding)
+
+            # 改成 HH:MM:SS
+            time_start = time.time()  # 当前时间的 Unix 时间戳（秒）
+            start_time_str = datetime.fromtimestamp(time_start + start_ms / 1000.0).strftime("%H:%M:%S")
+            end_time_str = datetime.fromtimestamp(time_start + end_ms / 1000.0).strftime("%H:%M:%S")
 
             processed_segments.append({
                 "text": segment_text,
                 "speaker": speaker,  # 真实的说话人
-                "time": [
-                    time_start + start_ms / 1000.0,
-                    time_start + end_ms / 1000.0
-                ]
+                "time": [start_time_str, end_time_str]
             })
 
         print("\n所有片段处理完毕。")

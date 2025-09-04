@@ -66,6 +66,14 @@ def summarize_content(request):
 
     return JsonResponse({"error": "只支持POST请求"}, status=405)
 
+@api_view(['POST'])
+def recognize(request):
+    if request.method == "POST" and request.FILES.get("audio"):
+        audio_file = request.FILES["audio"]
+        audio_bytes = audio_file.read()
+        results = procedure.get_speech_segments_with_embeddings(audio_bytes, time_start=0,reg_system = registration_system)
+        return JsonResponse({"results": results}, safe=False)
+    return JsonResponse({"error": "请用 POST 上传 audio 文件"}, status=400)
 
 # 会议记录管理
 class MeetingViewSet(viewsets.ModelViewSet):
