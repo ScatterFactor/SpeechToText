@@ -525,6 +525,19 @@ export default {
                 .then(data => {
                     console.log(data)
                     this.voiceprints = data;
+                    let i = 0;
+                    for (i = 0; i < this.voiceprints.length; i++) {
+                        //格式化时间
+                        this.voiceprints[i].upload_date = new Date(this.voiceprints[i].upload_date).toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false // 使用24小时制
+                        });
+                    }
                 })
                 .catch(error => {
                     console.log('获取所有声纹列表失败:' + error);
@@ -942,7 +955,7 @@ export default {
                 })
                     .then(response => {
                         response;
-                        return ;
+                        return;
                     })
                     .then(data => {
                         data;
