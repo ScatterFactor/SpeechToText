@@ -53,7 +53,7 @@
                 <div class="panel-header">
                     <h2 class="panel-title">会议摘要</h2>
                     <button class="btn btn-primary" @click="generateSummary">
-                        <i class="fas fa-sync"></i> 重新生成
+                        <i class="fas fa-sync"></i> 生成摘要
                     </button>
                 </div>
 
@@ -69,14 +69,6 @@
                     </div>
                 </div>
 
-                <div class="controls">
-                    <button class="btn btn-primary" @click="exportSummary">
-                        <i class="fas fa-file-export"></i> 导出摘要
-                    </button>
-                    <!-- <button class="btn btn-secondary" @click="copySummary">
-                        <i class="fas fa-copy"></i> 复制到剪贴板
-                    </button> -->
-                </div>
             </div>
         </div>
 
@@ -255,14 +247,7 @@ export default {
                 }
             ],
             //会议总结变量
-            summaryPoints: [
-                '讨论了Q2季度产品开发进度，前端完成80%，后端完成65%',
-                '计划下周中期进行第一次集成测试',
-                '提出了数据库读写分离的优化方案以提高高并发性能',
-                '要求准备详细技术方案在下次会议讨论',
-                '需要确认测试团队是否提前介入'
-                ,
-            ],
+            summaryPoints: "会议总结会议总结",
             //会议列表变量
             savedFiles: [
                 {
@@ -452,6 +437,7 @@ export default {
                     //假设数据中含有meetingTopics字段
                     // this.savedFiles = data.meetingTopics;
                     this.savedFiles = data;
+                    console.log("获取的会议列表",this.savedFiles)
                 })
                 .catch(error => {
                     console.log(error);
@@ -496,15 +482,12 @@ export default {
                     if (!response.ok) {
                         throw new Error(`删除 ${file.name} 失败！`);
                     }
-                    return response.json();
+                    return;
                 })
                 .then(data => {
-                    if (data.success) {
-                        this.savedFiles.splice(index, 1);
-                    }
-                    else {
-                        console.log(`删除 ${file.name} 失败！`);
-                    }
+                    alert("删除成功！")
+                    this.savedFiles.splice(index, 1);
+                    data;
                 })
                 .catch(error => {
                     console.log(error);
@@ -749,7 +732,7 @@ export default {
 
         confirmSaveRecording() {
 
-            fetch(`${this.baseURL}/speech/meetings`, {
+            fetch(`${this.baseURL}/speech/meetings/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -764,19 +747,24 @@ export default {
                     if (!response.ok) {
                         throw new Error('保存失败')
                     }
-                    return response.json();
+                    return ;
                 })
                 .then(data => {
                     // 假设data中含有success字段
-                    if (data.success) {
-                        alert('会议记录已保存！');
-                        this.meetingTopic = '';
-                        this.showSaveModal = false;
-                        this.speakers = [];
-                        this.summaryPoints = [];
-                        // 重新获得所有会议记录主题列表
-                        this.getAllMeetingRecorder();
-                    }
+                    // if (data.success) {
+                    //     alert('会议记录已保存！');
+                    //     this.meetingTopic = '';
+                    //     this.showSaveModal = false;
+                    //     this.speakers = [];
+                    //     this.summaryPoints = [];
+                    //     // 重新获得所有会议记录主题列表
+                    //     this.getAllMeetingRecorder();
+                    // }
+                    alert('会议记录已保存！');
+                    this.meetingTopic = '';
+                    this.showSaveModal = false;
+                    this.getAllMeetingRecorder();
+                    data;
                 })
                 .catch(error => {
                     console.log('保存会议记录失败：' + error);
@@ -800,7 +788,9 @@ export default {
             let i = 0;
             while (i < this.speakers.length) {
                 meetingContent += this.speakers[i].name + '：' + this.speakers[i].text + '\n';
+                i+=1;
             }
+            this.summaryPoints = "AI摘要生成中..."
             fetch(`${this.baseURL}/speech/summarize/`, {
                 method: 'POST',
                 headers: {
