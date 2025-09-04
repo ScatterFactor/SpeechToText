@@ -57,9 +57,15 @@
                     </button>
                 </div>
 
-                <div class="summary-content">
+                <!-- <div class="summary-content">
                     <div v-for="(point, index) in summaryPoints" :key="index" class="summary-point">
                         {{ point }}
+                    </div>
+                </div> -->
+
+                <div class="summary-content">
+                    <div class="summary-point">
+                        {{ summaryPoints }}
                     </div>
                 </div>
 
@@ -89,7 +95,7 @@
                             <button class="btn-icon" @click="viewMeetingHistory(file)" title="查看">
                                 <i class="fas fa-eye"></i>查看
                             </button>
-                            <button class="btn-icon" @click="deleteMeetingHistory(index)" title="删除">
+                            <button class="btn-icon" @click="deleteMeetingHistory(file, index)" title="删除">
                                 <i class="fas fa-trash"></i>删除
                             </button>
                         </div>
@@ -180,10 +186,11 @@
                                 <h4>{{ voiceprint.speakerName }}</h4>
                                 <p>{{ voiceprint.fileName }}</p>
                                 <span class="upload-date">添加于: {{ voiceprint.uploadDate }}</span>
+                                <!-- <span class="upload-date">添加于: {{ voiceprint.timeStamp }}</span> -->
                             </div>
                         </div>
                         <div class="voiceprint-actions">
-                            <button class="btn-icon" @click="deleteVoiceprint(index)">
+                            <button class="btn-icon" @click="deleteVoiceprint(index, voiceprint.timeStamp)">
                                 <span><i class="fas fa-trash"></i>删除</span>
                             </button>
                         </div>
@@ -191,6 +198,20 @@
                 </div>
             </div>
         </div>
+
+        <!-- 输入会议主题模态框 -->
+        <div class="modal" v-if="showSaveModal" key="save-modal">
+            <div class="modal-content">
+                <h3>保存会议记录</h3>
+                <p>请输入会议主题：</p>
+                <input type="text" v-model="meetingTopic" placeholder="例如：产品需求讨论会">
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" @click="cancelSaveRecording">取消</button>
+                    <button class="btn btn-primary" @click="confirmSaveRecording">确定</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 </template>
 
@@ -199,6 +220,8 @@ export default {
     name: 'MeetingRecorder',
     data() {
         return {
+            //服务器基础路由
+            baseURL: process.env.VUE_APP_API_BASE,
             isRecording: false,
             pauseRecording_: false,
             recordingTime: 0,
@@ -207,19 +230,19 @@ export default {
             recordingStartTime: 0, // 新增：记录开始录制的时间戳
             speakers: [
                 {
-                    id: 1,
+                    // id: 1,
                     name: '发言人 1',
                     time: '10:05 AM',
                     text: '大家好，欢迎参加今天的项目会议。我们今天主要讨论Q2季度产品开发进度和下一步计划。'
                 },
                 {
-                    id: 2,
+                    // id: 2,
                     name: '发言人 2',
                     time: '10:07 AM',
                     text: '目前前端开发已完成80%，后端API开发进度稍慢，大约完成65%。我们需要在下周中期进行第一次集成测试。'
                 },
                 {
-                    id: 3,
+                    // id: 3,
                     name: '发言人 3',
                     time: '10:12 AM',
                     text: '关于数据库优化部分，我建议采用读写分离的方案，这可以提高系统在高并发情况下的性能表现。'
@@ -231,6 +254,7 @@ export default {
                 '提出了数据库读写分离的优化方案以提高高并发性能',
                 '要求准备详细技术方案在下次会议讨论',
                 '需要确认测试团队是否提前介入'
+                ,
             ],
             savedFiles: [
                 { name: '2023-09-15_产品会议记录' },
@@ -247,43 +271,250 @@ export default {
                 speakerName: '',
                 file: null
             },
-            voiceprints: [
-                // {
-                //     speakerName: '张三',
-                //     fileName: 'zhangsan_voice.mp3',
-                //     uploadDate: '2023-09-20'
-                // },
-                // {
-                //     speakerName: '李四',
-                //     fileName: 'lisi_voice.wav',
-                //     uploadDate: '2023-09-19'
-                // }
-            ]
+            voiceprints: [],
+
+            //麦克风相关数据
+            audioContext: null,
+            mediaRecorder: null,
+            audioChunks: [],
+            audioStream: null,
+            isRecordingAudio: false,
+            recordedAudio: null,
+            recognition: null, // 语音识别对象
+            recognitionText: '', // 当前识别的文本
+
+            //会议主题相关变量
+            showSaveModal: false, // 新增：控制保存模态框显示
+            meetingTopic: '',     // 新增：用户输入的会议主题
 
         }
     },
+
+    created() {
+        this.getAllMeetingRecorder();
+        this.getAllVoicePrints();
+    },
+
     computed: {
         isVoiceprintValid() {
             return this.newVoiceprint.speakerName.trim() !== '' && this.newVoiceprint.file !== null;
         }
     },
     methods: {
-        startRecording() {
+        //获取所有会议主题列表
+        getAllMeetingRecorder() {
+            fetch(`${this.baseURL}/api/getAllMeetingRecorder`, {
+                method: 'GET'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("获取会议记录失败");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    //假设数据中含有meetingTopics字段
+                    this.savedFiles = data.meetingTopics;
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+        },
+
+        //查看某条会议记录
+        viewMeetingHistory(file) {
+            // 会议逐渐
+            let meetingId = file.id;
+            fetch(`${this.baseURL}/api/getOneMeeting/${meetingId}`, {
+                method: 'GET'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`获取${file.title}的会议记录失败`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 假设返回的data中有transcription、summary字段
+                    this.speakers = data.transcription;
+                    this.summaryPoints = data.summary;
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+        },
+
+        deleteMeetingHistory(file, index) {
+            const meetingId = file.id;
+            fetch(`${this.baseURL}/api/deleteMeetingRecorder/${meetingId}`, {
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`删除 ${file.name} 失败！`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        this.savedFiles.splice(index, 1);
+                    }
+                    else {
+                        console.log(`删除 ${file.name} 失败！`);
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+        },
+
+        getAllVoicePrints() {
+            fetch('${this.baseURL}/api/getAllVoicePrints', {
+                method: "GET"
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("获取声纹数据失败");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.voiceprints = data;
+                })
+                .catch(error => {
+                    console.log('获取所有声纹列表失败:' + error);
+                    // alert('获取所有声纹数据失败');
+                })
+        },
+
+        uploadAudio(audioData) {
+            console.log('将一秒的音频文件上传给后端');
+            // console.log(audioData);
+            // this.speakers[this.speakers.length - 1].text += '这是一秒的识别内容 \n';
+            const formData = new FormData();
+            formData.append('audio', audioData);
+            formData.append('timestamp', Date.now());
+            fetch('${this.baseURL}/api/upLoadAudio', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('上传失败');
+                    }
+                    return response.json()
+                })
+                .then(data => {
+                    if (data.success) {
+                        console.log('音频上传成功');
+                        //加入data中有{speaker:说话人, text: 语音识别的内容, time: 后端接收前端音频数据的时间}
+                        //获得最近一次的说话人
+                        const theLastSpeaker = this.speakers[this.speakers.length - 1].name;
+                        const theCurrSpeaker = data.speaker;
+                        if (theCurrSpeaker === theLastSpeaker) {
+                            this.speakers[this.speakers.length - 1].text += data.text;
+                        }
+                        else {
+                            this.speakers.push({ name: data.name, time: data.time, text: data.text });
+                        }
+
+                    }
+                })
+                .catch(error => {
+                    console.log('语音识别失败：' + error);
+                })
+        },
+
+        async startRecording() {
             if (!this.isRecording) {
-                this.isRecording = true;
+                try {
+                    this.isRecording = true;
 
-                // 记录开始时间
-                this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+                    // 记录开始时间
+                    this.recordingStartTime = Date.now() - this.recordingTime * 1000;
 
-                // 使用更精确的计时方法
-                this.recordingInterval = setInterval(() => {
-                    // 计算经过的时间（毫秒）
-                    const elapsed = Date.now() - this.recordingStartTime;
-                    // 转换为秒并四舍五入
-                    this.recordingTime = Math.round(elapsed / 1000);
-                }, 100); // 每100毫秒更新一次，更平滑
+                    // 启动计时器
+                    this.recordingInterval = setInterval(() => {
+                        const elapsed = Date.now() - this.recordingStartTime;
+                        this.recordingTime = Math.round(elapsed / 1000);
+                    }, 100);
+
+                    // 请求麦克风权限
+                    this.audioStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            sampleRate: 16000, // 16kHz采样率
+                            channelCount: 1,   // 单声道
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        },
+                        video: false
+                    });
+
+                    // 创建媒体录制器
+                    const options = {
+                        mimeType: 'audio/webm;codecs=opus',
+                        audioBitsPerSecond: 128000 // 128kbps
+                    };
+                    this.mediaRecorder = new MediaRecorder(this.audioStream, options);
+
+                    // 存储音频块
+                    this.audioChunks = [];
+
+                    // 设置每秒生成数据块
+                    this.mediaRecorder.start(1000); // 每1000毫秒（1秒）触发一次
+
+                    // 处理音频数据块
+                    this.mediaRecorder.ondataavailable = event => {
+                        if (event.data && event.data.size > 0) {
+                            // 保存到本地数组（可选）
+                            this.audioChunks.push(event.data);
+
+                            // 上传到后端
+                            this.uploadAudio(event.data);
+                        }
+                    };
+
+                    // 录音结束处理
+                    this.mediaRecorder.onstop = () => {
+                        // 创建完整录音（可选）
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                        this.recordedAudio = URL.createObjectURL(audioBlob);
+                        console.log('录音完成', this.recordedAudio);
+                        // 关闭麦克风
+                        this.stopMicrophone();
+                    };
+
+                } catch (error) {
+                    console.error('启动录音失败:', error);
+                    this.handleRecordingError(error);
+
+                    // 回退到仅计时模式
+                    this.isRecording = true;
+                    this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+
+                    this.recordingInterval = setInterval(() => {
+                        const elapsed = Date.now() - this.recordingStartTime;
+                        this.recordingTime = Math.round(elapsed / 1000);
+                    }, 100);
+                }
             }
         },
+        // startRecording() {
+        //     if (!this.isRecording) {
+        //         this.isRecording = true;
+
+        //         // 记录开始时间
+        //         this.recordingStartTime = Date.now() - this.recordingTime * 1000;
+
+        //         // 使用更精确的计时方法
+        //         this.recordingInterval = setInterval(() => {
+        //             // 计算经过的时间（毫秒）
+        //             const elapsed = Date.now() - this.recordingStartTime;
+        //             // 转换为秒并四舍五入
+        //             this.recordingTime = Math.round(elapsed / 1000);
+        //         }, 100); // 每100毫秒更新一次，更平滑
+        //     }
+        // },
         pauseRecording() {
             this.pauseRecording_ = true;
             this.isRecording = false;
@@ -291,10 +522,43 @@ export default {
                 clearInterval(this.recordingInterval);
                 this.recordingInterval = null;
             }
+            // 停止录音
+            if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                this.mediaRecorder.stop();
+            }
+
+            // 关闭麦克风
+            this.stopMicrophone();
+        },
+
+        //关闭麦克风
+        stopMicrophone() {
+            if (this.audioStream) {
+                // 停止所有轨道
+                this.audioStream.getTracks().forEach(track => {
+                    try {
+                        track.stop(); // 停止轨道
+                        track.enabled = false; // 禁用轨道
+                    } catch (error) {
+                        console.error('停止轨道失败:', error);
+                    }
+                });
+
+                // 释放资源
+                this.audioStream = null;
+            }
+
+            // 重置媒体录制器
+            if (this.mediaRecorder) {
+                this.mediaRecorder = null;
+            }
+
+            console.log('麦克风已关闭');
         },
         saveRecording() {
             // 在实际应用中，这里会保存录音和转录文本
             this.isRecording = false;
+            this.pauseRecording_ = false;
 
             // 重置计时相关状态
             if (this.recordingInterval) {
@@ -305,16 +569,102 @@ export default {
             this.recordingStartTime = null;   // 清除开始时间戳
             this.pauseRecording_ = false;     // 重置暂停状态
 
-            alert('会议记录已保存！');
+            if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                this.mediaRecorder.stop();
+            }
+
+            // 关闭麦克风
+            this.stopMicrophone();
+            // 显示保存模态框
+            this.showSaveModal = true;
+            console.log('showSaveModal：', this.showSaveModal);
+
+            // alert('会议记录已保存！');
 
             // 添加到已保存文件列表
-            const date = new Date();
-            const fileName = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_会议记录`;
-            this.savedFiles.unshift({ name: fileName });
+            // const date = new Date();
+            // const fileName = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_会议记录`;
+            // this.savedFiles.unshift({ name: fileName });
         },
+
+        //输入会议主题相关函数
+
+        confirmSaveRecording() {
+
+            fetch('${this.baseURL}/api/saveMeetingRecord', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    meetingTopic: this.meetingTopic,
+                    meetingContent: this.speakers,
+                    meetingSummary: this.summaryPoints
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('保存失败')
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 假设data中含有success字段
+                    if (data.success) {
+                        alert('会议记录已保存！');
+                        this.meetingTopic = '';
+                        this.showSaveModal = false;
+                        this.speakers = [];
+                        this.summaryPoints = [];
+                        // 重新获得所有会议记录主题列表
+                        this.getAllMeetingRecorder();
+                    }
+                })
+                .catch(error => {
+                    console.log('保存会议记录失败：' + error);
+                    this.showSaveModal = false;
+                });
+
+            // this.showSaveModal = false;
+
+        },
+
+        cancelSaveRecording() {
+            // 重置会议主题并关闭模态框
+            this.meetingTopic = '';
+            this.showSaveModal = false;
+            console.log('会议模态框关闭');
+        },
+
         generateSummary() {
             // 在实际应用中，这里会调用AI生成摘要
-            alert('正在生成会议摘要...')
+            let meetingContent = '';
+            let i = 0;
+            while (i < this.speakers.length) {
+                meetingContent += this.speakers[i].name + '：' + this.speakers[i].text + '\n';
+            }
+            fetch('${this.baseURL}/api/aiSummary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    meetingContent: meetingContent
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('AI会议总结生成失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.summaryPoints = data.summary;
+                })
+                .catch(error => {
+                    console.log(error);
+                })
+            // alert('正在生成会议摘要...')
         },
         exportSummary() {
             alert('导出会议摘要功能')
@@ -322,11 +672,11 @@ export default {
         downloadFile(file) {
             alert(`下载: ${file.name}`)
         },
-        deleteMeetingHistory(index) {
-            if (confirm('确定要删除这个文件吗？')) {
-                this.savedFiles.splice(index, 1)
-            }
-        },
+        // deleteMeetingHistory(index) {
+        //     if (confirm('确定要删除这个文件吗？')) {
+        //         this.savedFiles.splice(index, 1)
+        //     }
+        // },
         saveSettings() {
             alert('设置已保存')
             this.showSettings = false
@@ -363,14 +713,65 @@ export default {
 
         addVoiceprint() {
             if (this.isVoiceprintValid) {
+                let newVoiceprintTimeStamp = Date.now();
                 this.voiceprints.unshift({
                     speakerName: this.newVoiceprint.speakerName,
                     fileName: this.newVoiceprint.file.name,
-                    uploadDate: new Date().toLocaleDateString()
+                    uploadDate: new Date().toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false // 使用24小时制
+                    }),
+                    timeStamp: newVoiceprintTimeStamp
                 });
 
                 // 在实际应用中，这里应该上传文件到服务器
-                alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
+                // alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
+
+                const formData = new FormData();
+                formData.append('speakerName', this.newVoiceprint.speakerName);
+                formData.append('fileName', this.newVoiceprint.file.name);
+                formData.append('audioFile', this.newVoiceprint.file);
+                formData.append('timesStamp', newVoiceprintTimeStamp);
+
+                fetch('${this.baseURL}/api/addVoicePrint', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 处理响应...
+                        // response的结构：{"success":true, "message":"声纹添加成功"}
+                        if (data.success) {
+                            //后端添加成功，同时更新前端声纹列表
+                            // this.voiceprints.unshift({
+                            //     speakerName: this.newVoiceprint.speakerName,
+                            //     fileName: this.newVoiceprint.file.name,
+                            //     uploadDate: new Date().toLocaleString('zh-CN', {
+                            //         year: 'numeric',
+                            //         month: '2-digit',
+                            //         day: '2-digit',
+                            //         hour: '2-digit',
+                            //         minute: '2-digit',
+                            //         second: '2-digit',
+                            //         hour12: false // 使用24小时制
+                            //     }),
+                            //     timeStamp: newVoiceprintTimeStamp
+                            // });
+                            alert(`已添加 ${this.newVoiceprint.speakerName} 的声纹`);
+                        } else {
+                            alert('声纹添加失败');
+                        }
+                    })
+                    .catch(error => {
+                        // 错误处理...
+                        // alert('声纹添加失败');
+                        console.log(error);
+                    });
 
                 // 重置表单
                 this.cancelVoiceprintAdd();
@@ -385,9 +786,27 @@ export default {
             this.showVoiceprintForm = false;
         },
 
-        deleteVoiceprint(index) {
+        deleteVoiceprint(index, timeStamp) {
             if (confirm('确定要删除这个声纹吗？')) {
-                this.voiceprints.splice(index, 1);
+                // this.voiceprints.splice(index, 1);
+                fetch('${this.baseURL}/api/deleteVoiceprint', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ timeStamp: timeStamp })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.voiceprints.splice(index, 1);
+                            alert("声纹删除成功");
+                        }
+                    })
+                    .catch(error => {
+                        alert("声纹删除失败");
+                        console.log(error);
+                    })
             }
         },
 
@@ -828,5 +1247,47 @@ export default {
 .btn-icon:hover {
     background-color: #2575fc;
     color: white;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    max-width: 80%;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
 }
 </style>
