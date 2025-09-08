@@ -4,10 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="基本完成demo">
+    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="修改格式问题">
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/speech/tools/VoiceprintRegistration.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/tools/VoiceprintRegistration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/speech/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/speech/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../speechtotext-frontend/src/components/MeetingRecorder.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../speechtotext-frontend/src/components/MeetingRecorder.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,7 +111,7 @@
       <recent name="D:\Project\SpeechToText\speechtotext-backend\speech\tools" />
     </key>
   </component>
-  <component name="RunManager" selected="Django 服务器.speechtotext_backend">
+  <component name="RunManager" selected="Python.tool">
     <configuration name="tool" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="speechtotext-backend" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -185,7 +188,7 @@
       <workItem from="1756951764421" duration="10000" />
       <workItem from="1756951820111" duration="3705000" />
       <workItem from="1756955615586" duration="24970000" />
-      <workItem from="1757298389828" duration="2090000" />
+      <workItem from="1757298389828" duration="11342000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -291,7 +294,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756988641954</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="修改格式问题">
+      <option name="closed" value="true" />
+      <created>1757305879771</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1757305879771</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -328,10 +339,11 @@
     <MESSAGE value="完成声纹识别模块" />
     <MESSAGE value="声音识别模块初步" />
     <MESSAGE value="基本完成demo" />
-    <option name="LAST_COMMIT_MESSAGE" value="基本完成demo" />
+    <MESSAGE value="修改格式问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="修改格式问题" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/speechtotext_backend$tool.coverage" NAME="tool 覆盖结果" MODIFIED="1756958515758" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/speech/tools" />
+    <SUITE FILE_PATH="coverage/speechtotext_backend$tool.coverage" NAME="tool 覆盖结果" MODIFIED="1757301333035" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/speech/tools" />
     <SUITE FILE_PATH="coverage/speechtotext_backend$download_model.coverage" NAME="download_model 覆盖结果" MODIFIED="1756975132198" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/speech/tools" />
   </component>
 </project>
