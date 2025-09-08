@@ -275,7 +275,7 @@ class VoiceprintRegistration:
         embeddings_tensor = torch.cat(embeddings, dim=0)
         input_embedding = torch.mean(embeddings_tensor, dim=0).squeeze()
 
-        return self.embedding_to_speaker(input_embedding, threshold)
+        return self.embedding_to_speaker(input_embedding)
 
 # ===================================================================
 #                      主函数 (您的代码保持不变)
