@@ -267,6 +267,10 @@ export default {
             recordingInterval: null,
             recordingStartTime: 0, // 新增：记录开始录制的时间戳
 
+            post_ai_flag: false,
+            post_ai_flag_copy: false,
+            one_speaker_content: "",
+
             //语音转文字变量
             speakers: [],
             //会议总结变量
@@ -322,6 +326,7 @@ export default {
 
         startNewRecording() {
             this.newRecording_ = true;
+            this.pauseRecording();
             this.startRecording();
         },
 
@@ -602,6 +607,13 @@ export default {
                         let theLastSpeaker = (this.speakers.length > 0) ? this.speakers[this.speakers.length - 1].speaker : '';
                         let theCurrSpeaker = speech_result[i].speaker;
                         if (theLastSpeaker === theCurrSpeaker) {
+                            if (this.post_ai_flag !== this.post_ai_flag_copy) {
+                                this.one_speaker_content = "";
+                                this.post_ai_flag_copy = this.post_ai_flag;
+                            }
+                            if (this.post_ai_flag_copy = this.post_ai_flag) {
+                                this.one_speaker_content += speech_result[i].text;
+                            }
                             this.speakers[this.speakers.length - 1].text += " " + speech_result[i].text;
                         }
                         else {
@@ -642,7 +654,7 @@ export default {
             }
 
             const length = this.speakers.length;
-
+            this.post_ai_flag = !this.post_ai_flag;
             fetch(`${this.baseURL}/speech/refine/`, {
                 method: 'POST',
                 headers: {
@@ -663,6 +675,7 @@ export default {
                     for (let i = 0; i < length; i++) {
                         this.speakers[i] = data[i];
                     }
+                    this.speakers[length - 1].text += this.one_speaker_content;
                 })
                 .catch(error => {
                     console.log('优化对话失败：', error);
