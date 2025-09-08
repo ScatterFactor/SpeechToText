@@ -43,6 +43,9 @@
                     <button class="btn btn-secondary" @click="pauseRecording" :disabled="!isRecording">
                         <i class="fas fa-pause"></i> 暂停记录
                     </button>
+                    <button class="btn btn-primary" @click="startNewRecording" :disabled="!isRecording">
+                        <i class="fas fa-pause"></i> 新记录
+                    </button>
                     <button class="btn btn-success" @click="saveRecording">
                         <i class="fas fa-save"></i> 保存记录
                     </button>
@@ -254,6 +257,7 @@ export default {
             //服务器基础路由
             baseURL: process.env.VUE_APP_API_BASE,
             isRecording: false,
+            newRecording: true,
             pauseRecording_: false,
             recordingTime: 0,
             showSettings: false,
@@ -265,22 +269,7 @@ export default {
             //会议总结变量
             summaryPoints: "",
             //会议列表变量
-            savedFiles: [
-                // {
-                //     "id": 3,
-                //     "title": "测试会议1",
-                //     "transcription": "我讲了一句话，我讲了两句话",
-                //     "summary": "总结",
-                //     "created_at": "2025-09-04T03:19:23.401305Z"
-                // },
-                // {
-                //     "id": 1,
-                //     "title": "测试修改会议1",
-                //     "transcription": "我讲了三句话，我讲了两句话",
-                //     "summary": "总结",
-                //     "created_at": "2025-09-03T12:51:13.100165Z"
-                // }
-            ],
+            savedFiles: [],
             settings: {
                 model: 'standard',
                 speakerRecognition: 'auto',
@@ -327,116 +316,11 @@ export default {
         }
     },
     methods: {
-        //websocket传输语音数据的相关方法
 
-        // async startRecording() {
-        //     if (!this.isRecording) {
-        //         try {
-        //             this.isRecording = true;
-
-        //             // 记录开始时间
-        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
-
-        //             // 启动计时器
-        //             this.recordingInterval = setInterval(() => {
-        //                 const elapsed = Date.now() - this.recordingStartTime;
-        //                 this.recordingTime = Math.round(elapsed / 1000);
-        //             }, 100);
-
-        //             // 请求麦克风权限
-        //             this.audioStream = await navigator.mediaDevices.getUserMedia({
-        //                 audio: {
-        //                     sampleRate: 16000, // 16kHz采样率
-        //                     channelCount: 1,   // 单声道
-        //                     echoCancellation: true,
-        //                     noiseSuppression: true
-        //                 },
-        //                 video: false
-        //             });
-
-        //             // 创建媒体录制器
-        //             const options = {
-        //                 mimeType: 'audio/webm;codecs=opus',
-        //                 audioBitsPerSecond: 128000 // 128kbps
-        //             };
-        //             this.mediaRecorder = new MediaRecorder(this.audioStream, options);
-
-        //             //创建websocket连接
-        //             const socket = new WebSocket('ws://')
-
-
-
-        //             // 存储音频块
-        //             this.audioChunks = [];
-
-        //             // 设置每秒生成数据块
-        //             this.mediaRecorder.start(1000); // 每1000毫秒（1秒）触发一次
-
-        //             // 处理音频数据块
-        //             this.mediaRecorder.ondataavailable = event => {
-        //                 if (event.data && event.data.size > 0) {
-        //                     // 保存到本地数组（可选）
-        //                     this.audioChunks.push(event.data);
-
-        //                     // 连接建立时触发
-        //                     socket.addEventListener('open', (event1) => {
-        //                         console.log('WebSocket连接已建立: ' + event1);
-        //                         const formData = new FormData();
-        //                         formData.append('audio', event.data);
-        //                         formData.append('timestamp', Date.now());
-        //                         // 发送数据到后端（示例）
-        //                         // const requestData = { action: 'getData', userId: 123 };
-        //                         socket.send(formData);
-        //                     });
-
-        //                     // 接收后端消息
-        //                     socket.addEventListener('message', (event1) => {
-        //                         const responseData = JSON.parse(event1.data);
-        //                         console.log('收到后端数据:', responseData);
-
-        //                         const theLastSpeaker = this.speakers[this.speakers.length - 1].name;
-        //                         const theCurrSpeaker = responseData.speaker;
-        //                         if (theCurrSpeaker === theLastSpeaker) {
-        //                             this.speakers[this.speakers.length - 1].text += responseData.text;
-        //                         }
-        //                         else {
-        //                             this.speakers.push({ name: responseData.name, time: responseData.time, text: responseData.text });
-        //                         }
-
-        //                         // 在这里处理返回的数据
-        //                         // processData(responseData);
-        //                     });
-        //                     // 上传到后端
-        //                     // this.uploadAudio(event.data);
-        //                 }
-        //             };
-
-        //             // 录音结束处理
-        //             this.mediaRecorder.onstop = () => {
-        //                 // 创建完整录音（可选）
-        //                 const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        //                 this.recordedAudio = URL.createObjectURL(audioBlob);
-        //                 console.log('录音完成', this.recordedAudio);
-        //                 // 关闭麦克风
-        //                 this.stopMicrophone();
-        //             };
-
-        //         } catch (error) {
-        //             console.error('启动录音失败:', error);
-        //             this.handleRecordingError(error);
-
-        //             // 回退到仅计时模式
-        //             this.isRecording = true;
-        //             this.recordingStartTime = Date.now() - this.recordingTime * 1000;
-
-        //             this.recordingInterval = setInterval(() => {
-        //                 const elapsed = Date.now() - this.recordingStartTime;
-        //                 this.recordingTime = Math.round(elapsed / 1000);
-        //             }, 100);
-        //         }
-        //     }
-        // },
-
+        startNewRecording() {
+            this.newRecording = true;
+            this.startRecording();
+        },
 
         //获取所有会议主题列表
         getAllMeetingRecorder() {
@@ -561,7 +445,7 @@ export default {
                 })
         },
 
-        
+
         mergeBuffers(bufferQueue) {
             const length = bufferQueue.reduce((sum, buf) => sum + buf.length, 0);
             const result = new Float32Array(length);
@@ -586,7 +470,28 @@ export default {
             if (this.isRecording) return;
 
             try {
-                this.speakers = [];
+                //新记录，将内容清空
+                if (this.newRecording) {
+                    this.speakers = [];
+                    this.isRecording = true;
+                    this.pauseRecording_ = false;
+                    this.summaryPoints = "";
+                    this.recordingTime = 0;
+                    this.newRecording = false;
+                }
+                if (!this.isRecording && this.newRecording) {
+                    this.speakers = [];
+                    this.isRecording = true;
+                    this.pauseRecording_ = false;
+                    this.summaryPoints = "";
+                    this.recordingTime = 0;
+                    this.newRecording = false;
+                }
+
+                this.isRecording = true;
+                this.pauseRecording_ = false;
+                this.newRecording = false;
+                // this.speakers = [];
                 this.isRecording = true;
                 this.bufferedPCM = [];
                 this.bufferedTime = 0;
@@ -703,6 +608,7 @@ export default {
 
             // 1. 停止计时器
             this.pauseRecording_ = true;
+            this.newRecording = false;
             this.isRecording = false;
             if (this.recordingInterval) {
                 clearInterval(this.recordingInterval);
