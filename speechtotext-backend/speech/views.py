@@ -79,6 +79,8 @@ def refine_meeting_text(request):
         if not records:
             return JsonResponse({"results": []})
 
+        print("records",records,"\n")
+
         # 1.拼接所有文本，保留 speaker 标记
         combined_text = ""
         for rec in records:
@@ -87,12 +89,14 @@ def refine_meeting_text(request):
             if text:
                 combined_text += f"{speaker}说：{text}\n"
 
+        print("combined_text:",combined_text,"\n")
+
         # 2.调用 Deepseek API 一次性润色
         payload = {
             "model": "deepseek-chat",
             "stream": False,
             "messages": [
-                {"role": "system", "content": "你是一个专业的会议记录润色助手，我现在需要你将我的文本内容进行润色，保持语句通顺，更改错别字，因为这是语音识别出来的，难免会有误差，需要你进行更改。请保持每条发言对应的说话人。只返回纯文本，不要 Markdown，不要编号列表。每条发言请换行。不要私自加字，如果传给你的文本很短也不要返回多余内容，只要返回原内容即可。一定要记得最后返回时删除开头的“某某某说”，请记住"},
+                {"role": "system", "content": "你是一个专业的会议记录润色助手，我现在需要你将我的文本内容进行润色，保持语句通顺，更改一下标点，更改错别字，因为这是语音识别出来的，难免会有误差，需要你进行更改。请保持每条发言对应的说话人。只返回纯文本，不要 Markdown，不要编号列表。每条发言请换行。不要私自加字。一定要记得最后返回时删除开头的“某某某说”，请记住"},
                 {"role": "user", "content": combined_text}
             ]
         }
@@ -102,6 +106,7 @@ def refine_meeting_text(request):
         }
         response = requests.post(DEEPSEEK_URL, headers=headers, json=payload)
         response_data = response.json()
+        print("response_data",response_data,"\n")
         refined_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
         # 3.按原记录拆分回列表

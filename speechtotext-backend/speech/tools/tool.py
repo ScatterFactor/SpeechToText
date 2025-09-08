@@ -203,9 +203,20 @@ class Procedure(object):
             print("未加载标点模型(punc_model)，请在AutoModel初始化时传入。")
             return text
 
-        # 调用模型进行推理
-        res = self.model.inference(text, model=self.model.punc_model, kwargs=self.model.punc_kwargs)
-        print(res)
+        # 🔍 打印输入，确认是不是 None、空串或类型错误
+        print(f"[PUNC] 输入文本类型: {type(text)}, 内容: '{text}'")
+
+        try:
+            res = self.model.inference(
+                text,
+                model=self.model.punc_model,
+                kwargs=self.model.punc_kwargs
+            )
+            print(f"[PUNC] 模型输出: {res}")
+        except Exception as e:
+            print(f"[PUNC] 标点模型推理报错: {e}")
+            return text  # 出错时直接返回原始文本
+
         if len(res) > 0 and "text" in res[0]:
             return res[0]["text"]
         else:

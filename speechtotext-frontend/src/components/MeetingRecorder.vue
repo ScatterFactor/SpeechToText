@@ -52,27 +52,6 @@
                     <button class="btn btn-success" @click="saveRecording">
                         <i class="fas fa-save"></i> 保存记录
                     </button>
-
-                    <button class="btn btn-success" @click="triggerAudioFileUpload">
-                        <i class="fas fa-save"></i> 上传音频文件
-                    </button>
-
-                </div>
-                <div class="voiceprint-form" v-if="triggerAudioFileUploadFlag">
-                    <div class="form-group">
-                        <label class="form-label">上传音频文件</label>
-                        <div class="file-upload-area" @click="triggerFileUpload" @drop.prevent="handleFileDrop"
-                            @dragover.prevent @dragenter.prevent>
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <p>拖放音频文件到这里或点击选择文件</p>
-                            <input type="file" ref="fileInput" @change="handleFileSelect" accept="audio/*" hidden>
-                            <p class="file-name" v-if="newAudioFile.file">{{ newAudioFile.file.name }}</p>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button class="btn btn-secondary" @click="cancelAudioFileAdd">取消</button>
-                        <button class="btn btn-primary" @click="addAudioFile" :disabled="!isAudioValid">添加</button>
-                    </div>
                 </div>
             </div>
 
@@ -91,10 +70,47 @@
                 </div>
             </div>
 
+            <!-- <div class="card summary-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">会议摘要</h2>
+                    <button class="btn btn-primary" @click="generateSummary">
+                        <i class="fas fa-sync"></i> 生成摘要
+                    </button>
+                </div>
 
+
+                <div class="summary-content">
+                    <div class="summary-point">
+                        {{ summaryPoints }}
+                    </div>
+                </div>
+
+            </div> -->
         </div>
 
         <div class="management-panel">
+            <!-- <div class="card">
+                <div class="panel-header">
+                    <h2 class="panel-title">会议记录管理</h2>
+                </div>
+
+                <ul class="file-list">
+                    <li v-for="(file, index) in savedFiles" :key="index" class="file-item">
+                        <div class="file-name">
+                            <i class="fas fa-file-audio"></i> {{ file.title }}
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn-icon" @click="viewMeetingHistory(file)" title="查看">
+                                <i class="fas fa-eye"></i>查看
+                            </button>
+                            <button class="btn-icon" @click="deleteMeetingHistory(file, index)" title="删除">
+                                <i class="fas fa-trash"></i>删除
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+            </div> -->
+
             <div class="card">
                 <div class="panel-header">
                     <h2 class="panel-title">会议记录管理</h2>
@@ -255,12 +271,9 @@ export default {
             recordingInterval: null,
             recordingStartTime: 0, // 新增：记录开始录制的时间戳
 
-            triggerAudioFileUploadFlag: false,
-
             post_ai_flag: false,
             post_ai_flag_copy: false,
             one_speaker_content: "",
-            triggerFileUploadFlag: false,
 
             //语音转文字变量
             speakers: [],
@@ -274,9 +287,6 @@ export default {
                 summaryLength: 'medium'
             },
             showVoiceprintForm: false,
-            newAudioFile: {
-                file: null
-            },
             newVoiceprint: {
                 speakerName: '',
                 file: null
@@ -314,15 +324,9 @@ export default {
     computed: {
         isVoiceprintValid() {
             return this.newVoiceprint.speakerName.trim() !== '' && this.newVoiceprint.file !== null;
-        },
-        isAudioValid() {
-            return this.newAudioFile.file !== null;
         }
     },
     methods: {
-        triggerAudioFileUpload() {
-            this.triggerAudioFileUploadFlag = true;
-        },
 
         startNewRecording() {
             this.newRecording_ = true;
@@ -476,6 +480,15 @@ export default {
         },
         async startRecording() {
 
+            if (this.newRecording_) {
+                this.speakers = [];
+                this.summaryPoints = "";
+                this.recordingTime = 0;
+                this.newRecording_ = false;
+                this.isRecording = false;
+            }
+            if (this.isRecording) return;
+
             // 如果有挂起的 AI 优化请求，先取消
             if (this.abortControllerAI) {
                 this.abortControllerAI.abort();
@@ -487,14 +500,6 @@ export default {
                 this.abortControllerAudio.abort();
                 this.abortControllerAudio = null;
             }
-            if (this.newRecording_) {
-                this.speakers = [];
-                this.summaryPoints = "";
-                this.recordingTime = 0;
-                this.newRecording_ = false;
-                this.isRecording = false;
-            }
-            if (this.isRecording) return;
 
             try {
                 //新记录，将内容清空
@@ -623,7 +628,7 @@ export default {
                                 this.one_speaker_content = "";
                                 this.post_ai_flag_copy = this.post_ai_flag;
                             }
-                            if (this.post_ai_flag_copy === this.post_ai_flag) {
+                            if (this.post_ai_flag_copy === this.post_ai_flag && this.speakers.length > 1) {
                                 this.one_speaker_content += speech_result[i].text;
                             }
                             this.speakers[this.speakers.length - 1].text += " " + speech_result[i].text;
@@ -676,37 +681,37 @@ export default {
             if (this.audioContext) {
                 await this.audioContext.close();
             }
-
-            const length = this.speakers.length;
             this.post_ai_flag = !this.post_ai_flag;
             // 优化对话请求
             this.abortControllerAI = new AbortController();
-            fetch(`${this.baseURL}/speech/refine/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'applicatoin/json'
-                },
-                body: JSON.stringify(this.speakers),
-                signal: this.abortControllerAI.signal
+            // fetch(`${this.baseURL}/speech/refine/`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'applicatoin/json'
+            //     },
+            //     body: JSON.stringify(this.speakers),
+            //     signal: this.abortControllerAI.signal
 
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('优化对话失败');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('优化后的对话内容：', data);
-                    // this.speakers = data;
-                    for (let i = 0; i < length; i++) {
-                        this.speakers[i] = data[i];
-                    }
-                    this.speakers[length - 1].text += this.one_speaker_content;
-                })
-                .catch(error => {
-                    console.log('优化对话失败：', error);
-                })
+            // })
+            //     .then(response => {
+            //         if (!response.ok) {
+            //             throw new Error('优化对话失败');
+            //         }
+            //         return response.json();
+            //     })
+            //     .then(data => {
+            //         console.log('优化后的对话内容：', data);
+            //         // this.speakers = data;
+            //         for (let i = 0; i < length; i++) {
+            //             // this.speakers[i] = data[i];
+            //             this.$set(this.speakers,i,data[i]);
+            //         }
+            //         this.speakers[length - 1].text += this.one_speaker_content;
+            //         this.one_speaker_content = "";
+            //     })
+            //     .catch(error => {
+            //         console.log('优化对话失败：', error);
+            //     })
 
             // 5. 如果有残留音频数据（未满5秒），也要发送一次
             if (this.bufferedPCM && this.bufferedPCM.length > 0) {
@@ -916,25 +921,11 @@ export default {
         handleFileSelect(event) {
             const file = event.target.files[0];
             if (file && file.type.startsWith('audio/')) {
-                // 根据当前激活的上传类型更新对应的数据对象
-                if (this.triggerAudioFileUploadFlag) {
-                    this.newAudioFile.file = file;
-                } else if (this.showVoiceprintForm) {
-                    this.newVoiceprint.file = file;
-                }
+                this.newVoiceprint.file = file;
             } else {
                 alert('请选择有效的音频文件');
             }
         },
-
-        // handleFileSelect(event) {
-        //     const file = event.target.files[0];
-        //     if (file && file.type.startsWith('audio/')) {
-        //         this.newVoiceprint.file = file;
-        //     } else {
-        //         alert('请选择有效的音频文件');
-        //     }
-        // },
 
         handleFileDrop(event) {
             const files = event.dataTransfer.files;
@@ -946,36 +937,6 @@ export default {
                     alert('请拖放有效的音频文件');
                 }
             }
-        },
-
-        addAudioFile() {
-            console.log('addAudioFile called', this.newAudioFile);
-
-            if (this.isAudioValid) {
-                console.log('这里添加音频文件');
-                const formData = new FormData();
-                formData.append('audio_file', this.newAudioFile.file);
-
-                fetch(`${this.baseURL}/speech/voiceprints/`, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => { response; return; })
-                    .then(data => {
-                        this.speakers = data;
-                        alert(`音频文件添加成功`);
-                        data;
-                    })
-                    .catch(error => {
-                        // 错误处理...
-                        alert('音频文件添加失败');
-                        console.log(error);
-                    });
-
-                // 重置表单
-                this.cancelAudioFileAdd();
-            }
-
         },
 
         addVoiceprint() {
@@ -1045,12 +1006,6 @@ export default {
             }
         },
 
-        cancelAudioFileAdd() {
-            this.newAudioFile = {
-                file: null
-            };
-            this.triggerAudioFileUploadFlag = false;
-        },
         cancelVoiceprintAdd() {
             this.newVoiceprint = {
                 speakerName: '',
