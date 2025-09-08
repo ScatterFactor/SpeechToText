@@ -53,3 +53,8 @@ npm-debug.log
 yarn-error.log
 .env.local
 .env.*.local
+# IntelliJ / PyCharm
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/.name
