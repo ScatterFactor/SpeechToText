@@ -641,12 +641,37 @@ export default {
                 await this.audioContext.close();
             }
 
+
+            fetch(`${this.baseURL}/speech/refine/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'applicatoin/json'
+                },
+                body: JSON.stringify(this.speakers)
+
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('优化对话失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('优化后的对话内容：', data);
+                    this.speakers = data;
+                })
+                .catch(error => {
+                    console.log('优化对话失败：', error);
+                })
+
             // 5. 如果有残留音频数据（未满5秒），也要发送一次
             if (this.bufferedPCM && this.bufferedPCM.length > 0) {
                 this.sendBufferedAudio();
                 this.bufferedPCM = [];
                 this.bufferedTime = 0;
             }
+
+
 
             // 6. 如果有挂起的 fetch，取消
             if (this.abortController) {
