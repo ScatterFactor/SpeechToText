@@ -537,7 +537,7 @@ export default {
                     this.bufferedTime += inputData.length / 16000; // 秒数
 
                     // 如果累计到 5 秒就发送
-                    if (this.bufferedTime >= 5) {
+                    if (this.bufferedTime >= 2) {
                         this.sendBufferedAudio();
                         this.bufferedPCM = [];
                         this.bufferedTime = 0;

@@ -10,11 +10,11 @@ from typing import List, Dict, Any
 import time
 from datetime import datetime
 
-
+from speech.tools.VoiceprintRegistration import VoiceprintRegistration
 
 
 class Procedure(object):
-    def __init__(self,model):
+    def __init__(self, model):
         hotword_file = "./hotwords.txt"
         self.model = model
         self.hotwords = ''
@@ -62,8 +62,8 @@ class Procedure(object):
                 voiced_frames.append(frame)
                 ring_buffer.append((frame, is_speech))
                 num_unvoiced = len([f for f, speech in ring_buffer if not speech])
-                #if num_unvoiced > 0.9 * ring_buffer.maxlen:
-                if num_unvoiced >  0.9* ring_buffer.maxlen:
+                # if num_unvoiced > 0.9 * ring_buffer.maxlen:
+                if num_unvoiced > 0.9 * ring_buffer.maxlen:
                     print("检测到语音结束！")
                     break
         # timestamp2 = int(time.time())
@@ -76,7 +76,8 @@ class Procedure(object):
         # formatted_time1 = dt.strftime("%Y-%m-%d %H:%M:%S")
         # dt = datetime.fromtimestamp(timestamp2)
         # formatted_time2 = dt.strftime("%Y-%m-%d %H:%M:%S")
-        return b"".join(voiced_frames), timestamp1#formatted_time1,formatted_time2
+        return b"".join(voiced_frames), timestamp1  # formatted_time1,formatted_time2
+
     def record_duration_time(self, rate=16000, chunk_ms=30, duration_sec=5):
         """
         调用函数则麦克风开始录音，持续指定时长后自动停止，返回（audio_bytes,t）audio_bytes是duration_sec时段内声音内容字符串，t为语音开始的时间戳。
@@ -100,19 +101,20 @@ class Procedure(object):
             frame = stream.read(chunk_size, exception_on_overflow=False)
             frames.append(frame)
 
-        #timestamp2 = int(time.time())
+        # timestamp2 = int(time.time())
         print("...录音结束...")
         stream.stop_stream()
         stream.close()
         pa.terminate()
         print(frames)
-        #dt = datetime.fromtimestamp(timestamp1)
-        #formatted_time1 = dt.strftime("%Y-%m-%d %H:%M:%S")
+        # dt = datetime.fromtimestamp(timestamp1)
+        # formatted_time1 = dt.strftime("%Y-%m-%d %H:%M:%S")
         # dt = datetime.fromtimestamp(timestamp2)
         # formatted_time2 = dt.strftime("%Y-%m-%d %H:%M:%S")
-        return b"".join(frames), timestamp1#formatted_time1, formatted_time2
+        return b"".join(frames), timestamp1  # formatted_time1, formatted_time2
 
-    def get_speech_segments_with_embeddings(self, audio_bytes: bytes, time_start, reg_system, **kwargs) -> List[Dict[str, Any]]:
+    def get_speech_segments_with_embeddings(self, audio_bytes: bytes, time_start, reg_system, **kwargs) -> List[
+        Dict[str, Any]]:
         """
         处理音频字节流，返回每个语音片段的文本和声纹嵌入。
         """
@@ -132,7 +134,7 @@ class Procedure(object):
             **kwargs
         )
         vad_segments = vad_result[0]['value']
-        print("vad_result",vad_result)
+        print("vad_result", vad_result)
         print(f"VAD检测到 {len(vad_segments)} 个片段。")
 
         if not vad_segments:
@@ -185,13 +187,29 @@ class Procedure(object):
             end_time_str = datetime.fromtimestamp(time_start + end_ms / 1000.0).strftime("%H:%M:%S")
 
             processed_segments.append({
-                "text": segment_text,
+                "text": self.add_punctuation(segment_text),
                 "speaker": speaker,  # 真实的说话人
                 "time": [start_time_str, end_time_str]
             })
 
         print("\n所有片段处理完毕。")
         return processed_segments
+
+    def add_punctuation(self, text: str):
+        """
+        调用 punc_model 给文本加标点
+        """
+        if self.model.punc_model is None:
+            print("未加载标点模型(punc_model)，请在AutoModel初始化时传入。")
+            return text
+
+        # 调用模型进行推理
+        res = self.model.inference(text, model=self.model.punc_model, kwargs=self.model.punc_kwargs)
+        print(res)
+        if len(res) > 0 and "text" in res[0]:
+            return res[0]["text"]
+        else:
+            return text
 
 
 if __name__ == '__main__':
@@ -238,10 +256,17 @@ if __name__ == '__main__':
         # 3. 等待用户指令
 
         # 4. 从麦克风录制一句话,返回时间戳
-        audio_data_bytes,t1 = procedure.record_duration_time()
+        audio_data_bytes, t1 = procedure.record_duration_time()
+
+        registration_system = VoiceprintRegistration(model=model)
 
         # 5. 调用模型进行推理
-        results = procedure.get_speech_segments_with_embeddings(audio_data_bytes,t1)
+        results = procedure.get_speech_segments_with_embeddings(audio_data_bytes, t1,registration_system)
+
+        print(results)
+        sentence = procedure.add_punctuation(
+            "我 的 名 字 叫 做 何 晨 光 坦 克 是 没 有 后 视 镜 的 黑 哥 们 的 语 言 是 不 同 的")
+        print(sentence)
 
         # 6. 打印结果
         print("\n\n" + "=" * 20 + " 推理结果 " + "=" * 20)
