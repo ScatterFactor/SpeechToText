@@ -4,7 +4,7 @@ import os
 
 import requests
 import numpy as np
-
+from dotenv import load_dotenv
 import tempfile
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -27,8 +27,8 @@ procedure = speech_system.procedure
 registration_system = speech_system.registration_system
 
 
-
-DEEPSEEK_API_KEY = "sk-7cde7a227357449ebc8077b457b4e8ba"
+load_dotenv()  # 自动读取 .env
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
 @api_view(['POST'])
@@ -45,7 +45,7 @@ def summarize_content(request):
                 "model": "deepseek-chat",
                 "stream": False,
                 "messages": [
-                    {"role": "system", "content": "你是一个专业的会议总结助手，请只返回纯文本摘要，不要 Markdown，不要编号列表，只用自然段描述。"},
+                    {"role": "system", "content": "你是一个专业的会议总结助手，请只返回纯文本摘要，对这个会议进行总结，要对谁说的话进行总结，而不是单纯的返回所说的话，不要 Markdown，不要编号列表，只用自然段描述。"},
                     {"role": "user", "content": content}
                 ]
             }
@@ -66,6 +66,59 @@ def summarize_content(request):
 
     return JsonResponse({"error": "只支持POST请求"}, status=405)
 
+@api_view(['POST'])
+def refine_meeting_text(request):
+    """
+    批量对会议记录列表中的 text 进行润色和纠错
+    """
+    try:
+        records = json.loads(request.body)
+        if not isinstance(records, list):
+            return JsonResponse({"error": "数据格式必须是列表"}, status=400)
+
+        if not records:
+            return JsonResponse({"results": []})
+
+        # 1.拼接所有文本，保留 speaker 标记
+        combined_text = ""
+        for rec in records:
+            speaker = rec.get("speaker", "")
+            text = rec.get("text", "")
+            if text:
+                combined_text += f"{speaker}说：{text}\n"
+
+        # 2.调用 Deepseek API 一次性润色
+        payload = {
+            "model": "deepseek-chat",
+            "stream": False,
+            "messages": [
+                {"role": "system", "content": "你是一个专业的会议记录润色助手，请保持每条发言对应的说话人。只返回纯文本，不要 Markdown，不要编号列表。每条发言请换行。不要私自加字，如果传给你的文本很短也不要返回多余内容，只要返回原内容即可。最后返回时删除“某某某说”"},
+                {"role": "user", "content": combined_text}
+            ]
+        }
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        response = requests.post(DEEPSEEK_URL, headers=headers, json=payload)
+        response_data = response.json()
+        refined_text = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+        # 3.按原记录拆分回列表
+        refined_lines = [line.strip() for line in refined_text.split("\n") if line.strip()]
+        refined_records = []
+        for i, rec in enumerate(records):
+            refined_line = refined_lines[i] if i < len(refined_lines) else rec.get("text", "")
+            refined_records.append({
+                "speaker": rec.get("speaker", ""),
+                "text": refined_line,
+                "time": rec.get("time", "")
+            })
+
+        return JsonResponse(refined_records, safe=False)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 @api_view(['POST'])
 def recognize(request):

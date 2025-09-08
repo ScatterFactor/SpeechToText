@@ -9,6 +9,7 @@ router.register(r'voiceprints', views.VoiceprintViewSet)
 
 urlpatterns = [
     path("recognize/", views.recognize, name="recognize"),
+    path("refine/", views.refine_meeting_text, name="refine_meeting_text"),
     path("summarize/", views.summarize_content, name="summarize_content"),
     path("", include(router.urls)),  # 自动生成 ViewSet 的 RESTful 路由
 ]
