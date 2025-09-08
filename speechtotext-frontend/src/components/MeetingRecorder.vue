@@ -37,14 +37,17 @@
                 </div>
 
                 <div class="controls">
-                    <button class="btn btn-primary" @click="startRecording">
-                        <i class="fas fa-play"></i> {{ pauseRecording_ ? '继续记录' : '开始记录' }}
+                    <!-- <button class="btn btn-primary" @click="startRecording">
+                        <i class="fas fa-play"></i> {{ pauseRecording_ ? '新记录' : '开始记录' }}
+                    </button> -->
+                    <button class="btn btn-primary" @click="startNewRecording()">
+                        <i class="fas fa-play"></i> 新记录
                     </button>
                     <button class="btn btn-secondary" @click="pauseRecording" :disabled="!isRecording">
                         <i class="fas fa-pause"></i> 暂停记录
                     </button>
-                    <button class="btn btn-primary" @click="startNewRecording" :disabled="!isRecording">
-                        <i class="fas fa-pause"></i> 新记录
+                    <button class="btn btn-primary" @click="startRecording" v-if="!isRecording && pauseRecording_">
+                        <i class="fas fa-pause"></i> 继续记录
                     </button>
                     <button class="btn btn-success" @click="saveRecording">
                         <i class="fas fa-save"></i> 保存记录
@@ -257,7 +260,7 @@ export default {
             //服务器基础路由
             baseURL: process.env.VUE_APP_API_BASE,
             isRecording: false,
-            newRecording: true,
+            newRecording_: true,
             pauseRecording_: false,
             recordingTime: 0,
             showSettings: false,
@@ -318,7 +321,7 @@ export default {
     methods: {
 
         startNewRecording() {
-            this.newRecording = true;
+            this.newRecording_ = true;
             this.startRecording();
         },
 
@@ -467,30 +470,37 @@ export default {
             return buf;
         },
         async startRecording() {
+            if (this.newRecording_) {
+                this.speakers = [];
+                this.summaryPoints = "";
+                this.recordingTime = 0;
+                this.newRecording_ = false;
+                this.isRecording = false;
+            }
             if (this.isRecording) return;
 
             try {
                 //新记录，将内容清空
-                if (this.newRecording) {
+                if (this.newRecording_) {
                     this.speakers = [];
                     this.isRecording = true;
                     this.pauseRecording_ = false;
                     this.summaryPoints = "";
                     this.recordingTime = 0;
-                    this.newRecording = false;
+                    this.newRecording_ = false;
                 }
-                if (!this.isRecording && this.newRecording) {
-                    this.speakers = [];
-                    this.isRecording = true;
-                    this.pauseRecording_ = false;
-                    this.summaryPoints = "";
-                    this.recordingTime = 0;
-                    this.newRecording = false;
-                }
+                // if (!this.isRecording && this.newRecording_) {
+                //     this.speakers = [];
+                //     this.isRecording = true;
+                //     this.pauseRecording_ = false;
+                //     this.summaryPoints = "";
+                //     this.recordingTime = 0;
+                //     this.newRecording_ = false;
+                // }
 
                 this.isRecording = true;
                 this.pauseRecording_ = false;
-                this.newRecording = false;
+                this.newRecording_ = false;
                 // this.speakers = [];
                 this.isRecording = true;
                 this.bufferedPCM = [];
@@ -608,7 +618,7 @@ export default {
 
             // 1. 停止计时器
             this.pauseRecording_ = true;
-            this.newRecording = false;
+            this.newRecording_ = false;
             this.isRecording = false;
             if (this.recordingInterval) {
                 clearInterval(this.recordingInterval);
