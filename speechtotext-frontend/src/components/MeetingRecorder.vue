@@ -257,6 +257,10 @@ export default {
     name: 'MeetingRecorder',
     data() {
         return {
+            // 记录音频 fetch 的控制器
+            abortControllerAudio: null,
+            // 记录 AI 优化 fetch 的控制器
+            abortControllerAI: null,
             //服务器基础路由
             baseURL: process.env.VUE_APP_API_BASE,
             isRecording: false,
@@ -475,6 +479,18 @@ export default {
             return buf;
         },
         async startRecording() {
+
+            // 如果有挂起的 AI 优化请求，先取消
+            if (this.abortControllerAI) {
+                this.abortControllerAI.abort();
+                this.abortControllerAI = null;
+            }
+
+            // 如果有挂起的音频上传请求，先取消
+            if (this.abortControllerAudio) {
+                this.abortControllerAudio.abort();
+                this.abortControllerAudio = null;
+            }
             if (this.newRecording_) {
                 this.speakers = [];
                 this.summaryPoints = "";
@@ -585,12 +601,12 @@ export default {
             const formData = new FormData();
             formData.append('audio', blob, 'audio.pcm');
             // 新建控制器，每次调用 fetch 时都可取消
-            this.abortController = new AbortController();
+            this.abortControllerAudio = new AbortController();
 
             fetch('http://127.0.0.1:8000/speech/recognize/', {
                 method: 'POST',
                 body: formData,
-                signal: this.abortController.signal
+                signal: this.abortControllerAudio.signal
             }).then(res => res.json())
                 .then(data => {
                     console.log("识别结果:", data);
@@ -611,7 +627,7 @@ export default {
                                 this.one_speaker_content = "";
                                 this.post_ai_flag_copy = this.post_ai_flag;
                             }
-                            if (this.post_ai_flag_copy = this.post_ai_flag) {
+                            if (this.post_ai_flag_copy === this.post_ai_flag) {
                                 this.one_speaker_content += speech_result[i].text;
                             }
                             this.speakers[this.speakers.length - 1].text += " " + speech_result[i].text;
@@ -627,6 +643,18 @@ export default {
 
         async pauseRecording() {
             if (!this.isRecording) return;
+
+            // 取消挂起的音频上传
+            if (this.abortControllerAudio) {
+                this.abortControllerAudio.abort();
+                this.abortControllerAudio = null;
+            }
+
+            // 取消挂起的 AI 优化请求
+            if (this.abortControllerAI) {
+                this.abortControllerAI.abort();
+                this.abortControllerAI = null;
+            }
 
             // 1. 停止计时器
             this.pauseRecording_ = true;
@@ -655,12 +683,15 @@ export default {
 
             const length = this.speakers.length;
             this.post_ai_flag = !this.post_ai_flag;
+            // 优化对话请求
+            this.abortControllerAI = new AbortController();
             fetch(`${this.baseURL}/speech/refine/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'applicatoin/json'
                 },
-                body: JSON.stringify(this.speakers)
+                body: JSON.stringify(this.speakers),
+                signal: this.abortControllerAI.signal
 
             })
                 .then(response => {
@@ -688,13 +719,6 @@ export default {
                 this.bufferedTime = 0;
             }
 
-
-
-            // 6. 如果有挂起的 fetch，取消
-            if (this.abortController) {
-                this.abortController.abort();
-                this.abortController = null;
-            }
 
             this.isRecording = false;
             console.log("录音已停止");

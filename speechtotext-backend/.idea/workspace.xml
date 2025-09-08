@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="增加润色接口，增加requirement.txt，将deepseek的api转为环境变量">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/speech/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/speech/views.py" afterDir="false" />
+    <list default="true" id="c529b9a8-4bfc-41e3-85ce-fb047d4bd678" name="更改" comment="更改润色的prompt，使得ai返回的文本更合理">
+      <change beforePath="$PROJECT_DIR$/../speechtotext-frontend/src/components/MeetingRecorder.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../speechtotext-frontend/src/components/MeetingRecorder.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -185,7 +183,7 @@
       <workItem from="1756951764421" duration="10000" />
       <workItem from="1756951820111" duration="3705000" />
       <workItem from="1756955615586" duration="24970000" />
-      <workItem from="1757298389828" duration="12465000" />
+      <workItem from="1757298389828" duration="13094000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -307,7 +305,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757312446242</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="更改润色的prompt，使得ai返回的文本更合理">
+      <option name="closed" value="true" />
+      <created>1757313574834</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1757313574834</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -346,7 +352,8 @@
     <MESSAGE value="基本完成demo" />
     <MESSAGE value="修改格式问题" />
     <MESSAGE value="增加润色接口，增加requirement.txt，将deepseek的api转为环境变量" />
-    <option name="LAST_COMMIT_MESSAGE" value="增加润色接口，增加requirement.txt，将deepseek的api转为环境变量" />
+    <MESSAGE value="更改润色的prompt，使得ai返回的文本更合理" />
+    <option name="LAST_COMMIT_MESSAGE" value="更改润色的prompt，使得ai返回的文本更合理" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/speechtotext_backend$tool.coverage" NAME="tool 覆盖结果" MODIFIED="1757301333035" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/speech/tools" />
