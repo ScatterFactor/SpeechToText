@@ -641,6 +641,7 @@ export default {
                 await this.audioContext.close();
             }
 
+            const length = this.speakers.length;
 
             fetch(`${this.baseURL}/speech/refine/`, {
                 method: 'POST',
@@ -658,7 +659,10 @@ export default {
                 })
                 .then(data => {
                     console.log('优化后的对话内容：', data);
-                    this.speakers = data;
+                    // this.speakers = data;
+                    for (let i = 0; i < length; i++) {
+                        this.speakers[i] = data[i];
+                    }
                 })
                 .catch(error => {
                     console.log('优化对话失败：', error);
