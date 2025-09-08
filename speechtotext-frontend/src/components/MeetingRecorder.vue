@@ -465,28 +465,7 @@ export default {
             // 会议ID
             this.speakers = [];
             this.speakers = file.transcription;
-
-
-
-
-            // let meetingId = file.id;
-            // fetch(`${this.baseURL}/api/getOneMeeting/${meetingId}`, {
-            //     method: 'GET'
-            // })
-            //     .then(response => {
-            //         if (!response.ok) {
-            //             throw new Error(`获取${file.title}的会议记录失败`);
-            //         }
-            //         return response.json();
-            //     })
-            //     .then(data => {
-            //         // 假设返回的data中有transcription、summary字段
-            //         this.speakers = data.transcription;
-            //         this.summaryPoints = data.summary;
-            //     })
-            //     .catch(error => {
-            //         console.log(error);
-            //     })
+            this.summaryPoints = file.summary;
         },
 
         deleteMeetingHistory(file, index) {
@@ -704,7 +683,7 @@ export default {
         //     this.processor = processor;
         //     this.stream = stream;
         // },
-         // async startRecording() {
+        // async startRecording() {
         //     if (!this.isRecording) {
         //         try {
         //             this.isRecording = true;
@@ -901,29 +880,29 @@ export default {
                 method: 'POST',
                 body: formData
             }).then(res => res.json())
-            .then(data => {
-                console.log("识别结果:", data);
-                console.log("识别结果数据类型:", typeof data);
-                console.log("识别结果对象的属性:", Object.keys(data));
-                
-                let speech_result = data.results;
-                console.log('data.result的内容：', data.results);
-                console.log('speech_result的数据类型：', speech_result instanceof Array);
+                .then(data => {
+                    console.log("识别结果:", data);
+                    console.log("识别结果数据类型:", typeof data);
+                    console.log("识别结果对象的属性:", Object.keys(data));
 
-                let i =0;
-                for (i =0; i<speech_result.length;i++){
+                    let speech_result = data.results;
+                    console.log('data.result的内容：', data.results);
+                    console.log('speech_result的数据类型：', speech_result instanceof Array);
 
-                    let theLastSpeaker = (this.speakers.length > 0) ? this.speakers[this.speakers.length - 1].speaker : ''; 
-                    let theCurrSpeaker = speech_result[i].speaker;
-                    if (theLastSpeaker === theCurrSpeaker){
-                        this.speakers[this.speakers.length - 1].text += " " + speech_result[i].text;
+                    let i = 0;
+                    for (i = 0; i < speech_result.length; i++) {
+
+                        let theLastSpeaker = (this.speakers.length > 0) ? this.speakers[this.speakers.length - 1].speaker : '';
+                        let theCurrSpeaker = speech_result[i].speaker;
+                        if (theLastSpeaker === theCurrSpeaker) {
+                            this.speakers[this.speakers.length - 1].text += " " + speech_result[i].text;
+                        }
+                        else {
+                            this.speakers.push({ speaker: theCurrSpeaker, text: speech_result[i].text, time: speech_result[i].time[0] });
+                        }
                     }
-                    else{
-                        this.speakers.push({speaker: theCurrSpeaker, text: speech_result[i].text, time: speech_result[i].time[0]});
-                    }
-                }
-            })
-            .catch(err => console.error(err));
+                })
+                .catch(err => console.error(err));
         },
 
 
@@ -946,20 +925,31 @@ export default {
 
         //关闭麦克风
         stopMicrophone() {
-            if (this.audioStream) {
-                // 停止所有轨道
-                this.audioStream.getTracks().forEach(track => {
-                    try {
-                        track.stop(); // 停止轨道
-                        track.enabled = false; // 禁用轨道
-                    } catch (error) {
-                        console.error('停止轨道失败:', error);
-                    }
-                });
-
-                // 释放资源
-                this.audioStream = null;
+            if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                this.mediaRecorder.stop();
+                console.log('停止录音');
             }
+
+            //关闭麦克风
+            if (this.stream) {
+                this.stream.getTracks().forEach(track => track.stop());
+                this.stream = null;
+                console.log('麦克风流已停止');
+            }
+            // if (this.audioStream) {
+            //     // 停止所有轨道
+            //     this.audioStream.getTracks().forEach(track => {
+            //         try {
+            //             track.stop(); // 停止轨道
+            //             track.enabled = false; // 禁用轨道
+            //         } catch (error) {
+            //             console.error('停止轨道失败:', error);
+            //         }
+            //     });
+
+            //     // 释放资源
+            //     this.audioStream = null;
+            // }
 
             // 重置媒体录制器
             if (this.mediaRecorder) {
@@ -1164,28 +1154,28 @@ export default {
                     method: 'POST',
                     body: formData
                 })
-                    .then(response => {response;return;})
+                    .then(response => { response; return; })
                     .then(data => {
                         // 处理响应...
                         // response的结构：{"success":true, "message":"声纹添加成功"}
-                            this.getAllVoicePrints();
-                            //后端添加成功，同时更新前端声纹列表
-                            // this.voiceprints.unshift({
-                            //     speakerName: this.newVoiceprint.speakerName,
-                            //     fileName: this.newVoiceprint.file.name,
-                            //     uploadDate: new Date().toLocaleString('zh-CN', {
-                            //         year: 'numeric',
-                            //         month: '2-digit',
-                            //         day: '2-digit',
-                            //         hour: '2-digit',
-                            //         minute: '2-digit',
-                            //         second: '2-digit',
-                            //         hour12: false // 使用24小时制
-                            //     }),
-                            //     timeStamp: newVoiceprintTimeStamp
-                            // });
-                            alert(`声纹添加成功`);
-                            data;
+                        this.getAllVoicePrints();
+                        //后端添加成功，同时更新前端声纹列表
+                        // this.voiceprints.unshift({
+                        //     speakerName: this.newVoiceprint.speakerName,
+                        //     fileName: this.newVoiceprint.file.name,
+                        //     uploadDate: new Date().toLocaleString('zh-CN', {
+                        //         year: 'numeric',
+                        //         month: '2-digit',
+                        //         day: '2-digit',
+                        //         hour: '2-digit',
+                        //         minute: '2-digit',
+                        //         second: '2-digit',
+                        //         hour12: false // 使用24小时制
+                        //     }),
+                        //     timeStamp: newVoiceprintTimeStamp
+                        // });
+                        alert(`声纹添加成功`);
+                        data;
                     })
                     .catch(error => {
                         // 错误处理...
@@ -1328,15 +1318,19 @@ export default {
 .speaker-header {
     display: flex;
     align-items: center;
-    justify-content: center; /* 新增：水平居中 */
+    justify-content: center;
+    /* 新增：水平居中 */
     gap: 10px;
     margin-bottom: 5px;
-    position: relative; /* 新增：为绝对定位做准备 */
+    position: relative;
+    /* 新增：为绝对定位做准备 */
 }
 
 .speaker-icon {
-    position: absolute; /* 新增：绝对定位 */
-    left: 0; /* 新增：固定在左侧 */
+    position: absolute;
+    /* 新增：绝对定位 */
+    left: 0;
+    /* 新增：固定在左侧 */
     /* 其他原有样式保持不变 */
     width: 32px;
     height: 32px;
